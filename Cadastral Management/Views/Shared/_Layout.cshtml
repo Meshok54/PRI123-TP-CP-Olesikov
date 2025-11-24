@@ -1,49 +1,103 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Cadastral_Management</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - Кадастровое управление</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Cadastral_Management.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Cadastral_Management</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            &copy; 2025 - Cadastral_Management - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <!-- Логотип -->
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo.png" alt="Логотип" width="40" height="40" class="d-inline-block align-text-top">
+                Кадастровое управление
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Home" asp-action="About">О нас</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Application" asp-action="Create" id="createApplicationLink">Подать заявление на учет</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Extract" asp-action="Request" id="requestExtractLink">Запросить кадастровую выписку</a>
+                    </li>
+                </ul>
+                
+                <!-- Правая часть навигации -->
+                <ul class="navbar-nav">
+                    @if (Context.Session.GetString("UserId") != null)
+                    {
+                        <!-- Для авторизованного пользователя -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                @Context.Session.GetString("UserName")
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Профиль</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Выйти</a></li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <!-- Для неавторизованного пользователя -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="Login">Войти</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="container mt-4">
+        @RenderBody()
+    </main>
+
+    <!-- Футер -->
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container text-center">
+            <p>&copy; 2025 Кадастровое управление. Все права защищены.</p>
         </div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <!-- Скрипт для проверки авторизации при клике на ссылки -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isAuthenticated = '@Context.Session.GetString("UserId")' !== '';
+            
+            // Обработчики для ссылок, требующих авторизации
+            const protectedLinks = ['createApplicationLink', 'requestExtractLink'];
+            
+            protectedLinks.forEach(linkId => {
+                const link = document.getElementById(linkId);
+                if (link) {
+                    link.addEventListener('click', function(e) {
+                        if (!isAuthenticated) {
+                            e.preventDefault();
+                            window.location.href = '@Url.Action("Login", "Account")';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

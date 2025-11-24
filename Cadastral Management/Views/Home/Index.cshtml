@@ -1,8 +1,126 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Главная страница";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!-- Герой-секция -->
+<section class="hero-section bg-light py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold text-primary mb-4">
+                    Кадастровый учет недвижимости
+                </h1>
+                <p class="lead mb-4">
+                    Современная система для подачи заявлений на кадастровый учет 
+                    и получения выписок онлайн. Быстро, удобно и надежно.
+                </p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    @if (Context.Session.GetString("UserId") != null)
+                    {
+                        <!-- Для авторизованного пользователя -->
+                        <a class="btn btn-primary btn-lg px-4 me-md-2" asp-controller="Application" asp-action="Create">
+                            Подать заявление
+                        </a>
+                        <a class="btn btn-outline-secondary btn-lg px-4" asp-controller="Extract" asp-action="Request">
+                            Запросить выписку
+                        </a>
+                    }
+                    else
+                    {
+                        <!-- Для неавторизованного пользователя -->
+                        <a class="btn btn-primary btn-lg px-4 me-md-2" asp-controller="Account" asp-action="Login">
+                            Войти в систему
+                        </a>
+                        <a class="btn btn-outline-secondary btn-lg px-4" asp-controller="Home" asp-action="About">
+                            Узнать больше
+                        </a>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <!-- Заглушка для графики -->
+                <div class="text-center">
+                    <div class="bg-primary text-white rounded-3 p-5">
+                        <i class="fas fa-building fa-5x mb-3"></i>
+                        <h4>Визуализация системы</h4>
+                        <p class="mb-0">Интерактивная карта и статистика</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Преимущества -->
+<section class="features-section py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col">
+                <h2 class="fw-bold">Наши преимущества</h2>
+                <p class="text-muted">Почему выбирают нашу систему</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="text-primary mb-3">
+                            <i class="fas fa-bolt fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Быстро</h5>
+                        <p class="card-text">Подача заявления занимает не более 10 минут</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="text-primary mb-3">
+                            <i class="fas fa-lock fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Безопасно</h5>
+                        <p class="card-text">Все данные защищены и хранятся в зашифрованном виде</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="text-primary mb-3">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Круглосуточно</h5>
+                        <p class="card-text">Система доступна 24/7 с любого устройства</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Статистика (для авторизованных пользователей) -->
+@if (Context.Session.GetString("UserId") != null)
+{
+    <section class="stats-section bg-primary text-white py-5">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <h3 class="fw-bold">5</h3>
+                    <p>Подано заявлений</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="fw-bold">3</h3>
+                    <p>Одобрено</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="fw-bold">2</h3>
+                    <p>Объектов на учете</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="fw-bold">7</h3>
+                    <p>Получено выписок</p>
+                </div>
+            </div>
+        </div>
+    </section>
+}

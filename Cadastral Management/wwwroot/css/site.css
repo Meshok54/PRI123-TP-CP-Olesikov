@@ -1,22 +1,13 @@
-html {
-  font-size: 14px;
+.hero-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+.features-section .card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-body {
-  margin-bottom: 60px;
+.stats-section h3 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
 }
