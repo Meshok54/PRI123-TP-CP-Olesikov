@@ -71,7 +71,6 @@ CREATE TABLE Extracts (
     file_path VARCHAR(500) NOT NULL,
     download_link_hash VARCHAR(64) UNIQUE,
     is_sent_via_email BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cadastral_object_id) REFERENCES CadastralObjects(cadastral_object_id) ON DELETE CASCADE,
     FOREIGN KEY (requested_by_id) REFERENCES Citizens(citizen_id) ON DELETE CASCADE
 );

@@ -1,0 +1,87 @@
+﻿@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h4><i class="fas fa-user-plus"></i> Регистрация гражданина</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger">@ViewBag.Error</div>
+                    }
+
+                    <form method="post" asp-action="Register" asp-controller="Account">
+                        <h5 class="text-primary mb-3">Основные данные</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="login" class="form-label">Логин *</label>
+                                    <input type="text" class="form-control" id="login" name="login" 
+                                           placeholder="Придумайте логин" required maxlength="50">
+                                    <small class="form-text text-muted">Уникальное имя для входа в систему</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Пароль *</label>
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           placeholder="Придумайте пароль" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="fullName" name="fullName" 
+                                   placeholder="Иванов Иван Иванович" required maxlength="100">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           placeholder="example@mail.ru" required maxlength="100">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="phoneNumber" class="form-label">Номер телефона</label>
+                                    <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" 
+                                           placeholder="+79991234567" maxlength="20">
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="text-primary mb-3 mt-4">Паспортные данные</h5>
+                        
+                        <div class="mb-3">
+                            <label for="passportData" class="form-label">Серия и номер паспорта *</label>
+                            <input type="text" class="form-control" id="passportData" name="passportData" 
+                                   placeholder="4510123456" required maxlength="10" pattern="[0-9]{10}">
+                            <small class="form-text text-muted">10 цифр без пробелов: серия (4) + номер (6)</small>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-user-check"></i> Зарегистрироваться
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="@Url.Action("Login", "Account")" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left"></i> Вернуться к входу
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
