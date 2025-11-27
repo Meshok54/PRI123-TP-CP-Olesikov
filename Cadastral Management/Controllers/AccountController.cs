@@ -27,24 +27,22 @@ namespace Cadastral_Management.Controllers
         {
             try
             {
-                // Ищу пользователя по логину
                 var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.Login == login);
 
                 if (user == null)
                 {
+                    Console.WriteLine("логин не верный");
                     ViewBag.Error = "Пользователь с таким логином не найден";
                     return View();
                 }
 
-                // Проверяю пароль с помощью BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 {
                     ViewBag.Error = "Неверный пароль";
                     return View();
                 }
 
-                // Сохраняю данные в сессии
                 HttpContext.Session.SetString("UserId", user.UserId.ToString());
                 HttpContext.Session.SetString("UserName", user.FullName);
                 HttpContext.Session.SetString("UserType", user.UserType);
@@ -53,7 +51,6 @@ namespace Cadastral_Management.Controllers
             }
             catch (Exception ex)
             {
-                // Логируем ошибку
                 Console.WriteLine($"=== ОШИБКА ВХОДА ===");
                 Console.WriteLine($"Ошибка: {ex.Message}");
                 Console.WriteLine($"====================");
@@ -81,7 +78,6 @@ namespace Cadastral_Management.Controllers
         {
             try
             {
-                // Проверяю уникальность логина и email
                 if (await _context.Users.AnyAsync(u => u.Login == login))
                 {
                     ViewBag.Error = "Пользователь с таким логином уже существует";
@@ -94,30 +90,26 @@ namespace Cadastral_Management.Controllers
                     return View();
                 }
 
-                // Проверяю уникальность паспортных данных
                 if (await _context.Citizens.AnyAsync(c => c.PassportData == passportData))
                 {
                     ViewBag.Error = "Пользователь с такими паспортными данными уже зарегистрирован";
                     return View();
                 }
 
-                // Создаю запись в Users
                 var user = new User
                 {
                     Login = login,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), // Хэширую пароль
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                     FullName = fullName,
                     Email = email,
                     PhoneNumber = phoneNumber,
                     UserType = "Citizen",
-                    CreatedAt = DateTime.Now // created_at заполнится автоматически, но на всякий случай
+                    CreatedAt = DateTime.Now
                 };
 
-                // Сохраняю пользователя чтобы получить UserId
                 _context.Users.Add(user);
-                await _context.SaveChangesAsync(); // Здесь генерирую UserId
+                await _context.SaveChangesAsync();
 
-                // Создаю запись в Citizens с тем же ID
                 var citizen = new Citizen
                 {
                     CitizenId = user.UserId,
@@ -127,7 +119,6 @@ namespace Cadastral_Management.Controllers
                 _context.Citizens.Add(citizen);
                 await _context.SaveChangesAsync();
 
-                // Автоматически логиню пользователя после регистрации
                 HttpContext.Session.SetString("UserId", user.UserId.ToString());
                 HttpContext.Session.SetString("UserName", user.FullName);
                 HttpContext.Session.SetString("UserType", user.UserType);
