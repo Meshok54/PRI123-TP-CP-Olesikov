@@ -14,7 +14,7 @@ CREATE TABLE Users (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
-    user_type ENUM('Citizen', 'Employee') NOT NULL,
+    user_type ENUM('Citizen', 'Employee', 'Admin') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

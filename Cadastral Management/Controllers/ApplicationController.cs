@@ -64,8 +64,6 @@ namespace Cadastral_Management.Controllers
 
                 if (applicationType == "Регистрация")
                 {
-                    // В реальном приложении здесь была бы более сложная логика
-                    // Сейчас просто сохраняю данные объекта в комментарий
                     application.CitizenComment = $"НОВЫЙ ОБЪЕКТ: {address}, {area} кв.м, {objectType}. " +
                                                 (string.IsNullOrEmpty(citizenComment) ? "" : $"Комментарий: {citizenComment}");
                 }
@@ -90,14 +88,12 @@ namespace Cadastral_Management.Controllers
 
                 ViewBag.Success = "Заявление успешно подано! Номер вашего заявления: " + application.ApplicationId;
 
-                // Очищаем форму после успешной отправки
                 ModelState.Clear();
 
                 return View();
             }
             catch (Exception ex)
             {
-                // Логируем ошибку
                 Console.WriteLine($"=== ОШИБКА ПОДАЧИ ЗАЯВЛЕНИЯ ===");
                 Console.WriteLine($"Ошибка: {ex.Message}");
                 Console.WriteLine($"===============================");

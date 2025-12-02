@@ -148,5 +148,11 @@ namespace Cadastral_Management.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction("Index", "Home");
         }
+
+        // GET: /Account/Profile - выход из системы
+        public IActionResult Profile()
+        {
+            return View();
+        }
     }
 }

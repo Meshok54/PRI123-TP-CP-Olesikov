@@ -1,0 +1,101 @@
+﻿@model Cadastral_Management.Models.CadastralObject
+@{
+    ViewData["Title"] = "Редактирование объекта";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white text-center">
+                    <h4><i class="fas fa-edit"></i> Редактирование кадастрового объекта</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <p>@error.ErrorMessage</p>
+                            }
+                        </div>
+                    }
+
+                    <form method="post" asp-action="Edit" asp-controller="CadastralObject">
+                        <input type="hidden" name="id" value="@Model.CadastralObjectId" />
+
+                        <div class="mb-3">
+                            <label for="cadastralNumber" class="form-label">Кадастровый номер *</label>
+                            <input type="text" class="form-control" id="cadastralNumber" name="cadastralNumber" 
+                                   value="@Model.CadastralNumber" required maxlength="14"
+                                   pattern="\d{2}:\d{2}:\d{3}:\d{4}" readonly>
+                            <small class="form-text text-muted">Кадастровый номер нельзя изменить</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Адрес объекта *</label>
+                            <input type="text" class="form-control" id="address" name="address" 
+                                   value="@Model.Address" required maxlength="500">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="area" class="form-label">Площадь (кв.м) *</label>
+                                    <input type="number" class="form-control" id="area" name="area" 
+                                           value="@Model.Area" step="0.01" min="0.01" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="objectType" class="form-label">Тип объекта *</label>
+                                    <select class="form-select" id="objectType" name="objectType" required>
+                                        <option value="Земельный участок" selected="@(Model.CadastralObjectType == "Земельный участок")">Земельный участок</option>
+                                        <option value="Здание" selected="@(Model.CadastralObjectType == "Здание")">Здание</option>
+                                        <option value="Помещение" selected="@(Model.CadastralObjectType == "Помещение")">Помещение</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ownerId" class="form-label">ID владельца *</label>
+                                    <input type="number" class="form-control" id="ownerId" name="ownerId" 
+                                           value="@Model.OwnerId" min="1" required>
+                                    <small class="form-text text-muted">
+                                        @if (Model.Owner?.User != null)
+                                        {
+                                            <span>Текущий владелец: @Model.Owner.User.FullName</span>
+                                        }
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="registrationDate" class="form-label">Дата регистрации *</label>
+                                    <input type="date" class="form-control" id="registrationDate" name="registrationDate" 
+                                           value="@Model.RegistrationDate.ToString("yyyy-MM-dd")" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Все изменения будут записаны в историю объекта
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-save"></i> Сохранить изменения
+                            </button>
+                            <a href="@Url.Action("Details", new { id = Model.CadastralObjectId })" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

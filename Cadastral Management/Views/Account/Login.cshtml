@@ -10,6 +10,11 @@
                     <h4><i class="fas fa-sign-in-alt"></i> Вход в систему</h4>
                 </div>
                 <div class="card-body p-4">
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger">@ViewBag.Error</div>
+                    }
+
                     <form method="post" asp-action="Login" asp-controller="Account">
                         <div class="mb-3">
                             <label for="login" class="form-label">Логин:</label>

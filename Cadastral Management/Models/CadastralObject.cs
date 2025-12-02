@@ -20,8 +20,8 @@ namespace Cadastral_Management.Models
         public string Address { get; set; }
 
         [Required]
-        [Range(0.01, double.MaxValue)]
-        [Column("area")]
+        [Range(0.01, 99999999.99)] // 8 цифр до запятой, 2 после
+        [Column("area", TypeName = "decimal(10,2)")]
         public decimal Area { get; set; }
 
         [Required]

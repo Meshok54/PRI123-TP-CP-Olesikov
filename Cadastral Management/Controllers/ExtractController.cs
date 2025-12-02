@@ -5,8 +5,8 @@ namespace Cadastral_Management.Controllers
 {
     public class ExtractController : Controller
     {
-        // GET: ExtractController
-        public ActionResult Extract()
+        // GET: /Extract/Request - запросить выписку
+        public ActionResult Request()
         {
             return View();
         }

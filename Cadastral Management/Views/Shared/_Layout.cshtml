@@ -25,14 +25,49 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="About">О нас</a>
+                        <a class="nav-link" asp-controller="Home" asp-action="About">
+                            О нас
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Application" asp-action="Create" id="createApplicationLink">Подать заявление на учет</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Extract" asp-action="Request" id="requestExtractLink">Запросить кадастровую выписку</a>
-                    </li>
+                    @if (Context.Session.GetString("UserType") == "Citizen")
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Application" asp-action="Create" id="createApplicationLink">
+                                Подать заявление на учет
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Extract" asp-action="Request" id="requestExtractLink">
+                                Запросить кадастровую выписку
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Application" asp-action="MyApplications" id="requestExtractLink">
+                                Мои заявления
+                            </a>
+                        </li>
+                    }
+                    else if(Context.Session.GetString("UserId") != null)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Application" asp-action="ViewAll">
+                                Посмотреть заявления
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="CadastralObject" asp-action="Create">
+                                Внести запись в кадастр
+                            </a>
+                        </li>
+                         if (Context.Session.GetString("UserType") == "Admin")
+                         {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="ViewAll" id="createAccountViewAllLink">
+                                    Посмотреть все аккаунты
+                                </a>
+                            </li>
+                         }
+                    }
                 </ul>
                 
                 <!-- Правая часть навигации -->
@@ -76,28 +111,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    
-    <!-- Скрипт для проверки авторизации при клике на ссылки -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const isAuthenticated = '@Context.Session.GetString("UserId")' !== '';
-            
-            // Обработчики для ссылок, требующих авторизации
-            const protectedLinks = ['createApplicationLink', 'requestExtractLink'];
-            
-            protectedLinks.forEach(linkId => {
-                const link = document.getElementById(linkId);
-                if (link) {
-                    link.addEventListener('click', function(e) {
-                        if (!isAuthenticated) {
-                            e.preventDefault();
-                            window.location.href = '@Url.Action("Login", "Account")';
-                        }
-                    });
-                }
-            });
-        });
-    </script>
     
     @await RenderSectionAsync("Scripts", required: false)
 </body>

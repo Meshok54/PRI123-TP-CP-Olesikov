@@ -1,0 +1,181 @@
+﻿@model Cadastral_Management.Models.CadastralObject
+@{
+    ViewData["Title"] = "Подробные данные об объекте";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Основная информация -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-info-circle"></i> Основная информация</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Кадастровый номер:</strong><br>
+                            <span class="h5 text-success">@Model.CadastralNumber</span></p>
+                            
+                            <p><strong>Адрес:</strong><br>@Model.Address</p>
+                            
+                            <p><strong>Тип объекта:</strong><br>
+                            <span class="badge bg-info">@Model.CadastralObjectType</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Площадь:</strong><br>
+                            <span class="h5">@Model.Area.ToString("0.00") кв.м</span></p>
+                            
+                            <p><strong>Дата регистрации:</strong><br>
+                            @Model.RegistrationDate.ToString("dd.MM.yyyy")</p>
+                            
+                            <p><strong>Дата создания в системе:</strong><br>
+                            @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Владелец -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5><i class="fas fa-user"></i> Владелец</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Owner?.User != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>ФИО:</strong><br>@Model.Owner.User.FullName</p>
+                                <p><strong>Логин:</strong><br>@Model.Owner.User.Login</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Email:</strong><br>@Model.Owner.User.Email</p>
+                                <p><strong>Телефон:</strong><br>@(Model.Owner.User.PhoneNumber ?? "не указан")</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-danger">Данные о владельце отсутствуют</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Выписки -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-file-alt"></i> Выписки (@Model.Extracts?.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Extracts?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Дата выписки</th>
+                                        <th>Статус отправки</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var extract in Model.Extracts.OrderByDescending(e => e.GenerationDate))
+                                    {
+                                        <tr>
+                                            <td>@extract.GenerationDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td>
+                                                @if (extract.IsSentViaEmail)
+                                                {
+                                                    <span class="badge bg-success">Отправлена на email</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Не отправлена</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Выписок пока нет</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Действия -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-cogs"></i> Действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Edit", new { id = Model.CadastralObjectId })" 
+                           class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                        <button onclick="confirmDelete(@Model.CadastralObjectId, '@Model.CadastralNumber')" 
+                                class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                        <a href="@Url.Action("Create", "Extract", new { objectId = Model.CadastralObjectId })" 
+                           class="btn btn-info">
+                            <i class="fas fa-file-pdf"></i> Создать выписку
+                        </a>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к списку
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- История изменений -->
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5><i class="fas fa-history"></i> История изменений (@Model.CadastralObjectHistories?.Count)</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    @if (Model.CadastralObjectHistories?.Any() == true)
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var history in Model.CadastralObjectHistories.OrderByDescending(h => h.ChangeDate))
+                            {
+                                <li class="list-group-item">
+                                    <small class="text-muted">@history.ChangeDate.ToString("dd.MM.yyyy HH:mm")</small><br>
+                                    <strong>@history.ChangedField:</strong> 
+                                    @if (!string.IsNullOrEmpty(history.OldValue))
+                                    {
+                                        <span class="text-danger">@history.OldValue</span> 
+                                        <i class="fas fa-arrow-right text-muted"></i>
+                                    }
+                                    <span class="text-success">@history.NewValue</span><br>
+                                    @if (history.ChangedByEmployee?.User != null)
+                                    {
+                                        <small>Сотрудник: @history.ChangedByEmployee.User.FullName</small>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted">История изменений отсутствует</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(id, cadastralNumber) {
+        if (confirm(`Вы уверены, что хотите удалить объект "${cadastralNumber}"? Это действие нельзя отменить!`)) {
+            window.location.href = '@Url.Action("Delete", "CadastralObject")' + '?id=' + id;
+        }
+    }
+</script>

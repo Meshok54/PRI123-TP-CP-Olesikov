@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Cadastral_Management.Models
 {
+    [Table("CadastralObjectHistory")]
     public class CadastralObjectHistory
     {
         [Key]

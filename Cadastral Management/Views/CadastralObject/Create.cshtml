@@ -1,0 +1,105 @@
+﻿@{
+    ViewData["Title"] = "Добавление кадастрового объекта";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h4><i class="fas fa-plus-circle"></i> Добавление нового кадастрового объекта</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <p>@error.ErrorMessage</p>
+                            }
+                        </div>
+                    }
+
+                    <form method="post" asp-action="Create" asp-controller="CadastralObject">
+                        <div class="mb-3">
+                            <label for="cadastralNumber" class="form-label">Кадастровый номер *</label>
+                            <input type="text" class="form-control" id="cadastralNumber" name="cadastralNumber" 
+                                   placeholder="XX:XX:XXX:XXXX" required maxlength="14"
+                                   pattern="\d{2}:\d{2}:\d{3}:\d{4}">
+                            <small class="form-text text-muted">Формат: 77:01:001:0010</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Адрес объекта *</label>
+                            <input type="text" class="form-control" id="address" name="address" 
+                                   placeholder="г. Москва, ул. Ленина, д. 1" required maxlength="500">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="area" class="form-label">Площадь (кв.м) *</label>
+                                    <input type="text" class="form-control" id="area" name="area" 
+                                           pattern="^\d+(\.\d{1,2})?$" 
+                                           placeholder="100.50">
+                                    <small class="form-text text-muted">Формат: 100.50</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="objectType" class="form-label">Тип объекта *</label>
+                                    <select class="form-select" id="objectType" name="objectType" required>
+                                        <option value="">Выберите тип объекта</option>
+                                        <option value="Земельный участок">Земельный участок</option>
+                                        <option value="Здание">Здание</option>
+                                        <option value="Помещение">Помещение</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ownerId" class="form-label">ID владельца *</label>
+                                    <input type="number" class="form-control" id="ownerId" name="ownerId" 
+                                           min="1" placeholder="1" required>
+                                    <small class="form-text text-muted">ID гражданина из системы</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="registrationDate" class="form-label">Дата регистрации *</label>
+                                    <input type="date" class="form-control" id="registrationDate" name="registrationDate" 
+                                           value="@DateTime.Now.ToString("yyyy-MM-dd")" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> Сохранить объект
+                            </button>
+                            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Вернуться к списку
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Маска для кадастрового номера
+        document.getElementById('cadastralNumber').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) value = value.substring(0,2) + ':' + value.substring(2);
+            if (value.length >= 5) value = value.substring(0,5) + ':' + value.substring(5);
+            if (value.length >= 9) value = value.substring(0,9) + ':' + value.substring(9);
+            e.target.value = value.substring(0, 14);
+        });
+    </script>
+}
