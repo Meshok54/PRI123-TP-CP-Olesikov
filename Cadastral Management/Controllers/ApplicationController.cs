@@ -94,13 +94,20 @@ namespace Cadastral_Management.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"=== ОШИБКА ПОДАЧИ ЗАЯВЛЕНИЯ ===");
-                Console.WriteLine($"Ошибка: {ex.Message}");
-                Console.WriteLine($"===============================");
-
                 ViewBag.Error = "Произошла ошибка при подаче заявления. Попробуйте еще раз.";
                 return View();
             }
+        }
+
+        // GET: /Application/ViewAll - посмотреть все заявления
+        public IActionResult ViewAll()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            return View();
         }
 
         // GET: /Application/MyApplications - список моих заявлений

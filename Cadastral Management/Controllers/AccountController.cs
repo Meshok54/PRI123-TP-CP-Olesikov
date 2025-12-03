@@ -154,5 +154,16 @@ namespace Cadastral_Management.Controllers
         {
             return View();
         }
+
+        // GET: /Account/ViewAll - посмотреть всех пользователь
+        public IActionResult ViewAll()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            return View();
+        }
     }
 }
