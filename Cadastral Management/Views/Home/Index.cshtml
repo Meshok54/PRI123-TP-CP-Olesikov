@@ -232,8 +232,19 @@
                                     <div class="text-center mt-2">
                                         <small class="text-muted">
                                             Страница @ViewBag.CurrentPage из @ViewBag.TotalPages
-                                            (@((ViewBag.CurrentPage - 1) * ViewBag.PageSize + 1) - 
-                                            @Math.Min(ViewBag.CurrentPage * ViewBag.PageSize, ViewBag.TotalItems) из @ViewBag.TotalItems объектов)
+                                            @{
+                                                var currentPage = ViewBag.CurrentPage as int? ?? 1;
+                                                var pageSize = ViewBag.PageSize as int? ?? 10;
+                                                var totalItems = ViewBag.TotalItems as int? ?? 0;
+            
+                                                var start = (currentPage - 1) * pageSize + 1;
+                                                var end = Math.Min(currentPage * pageSize, totalItems);
+            
+                                                if (totalItems > 0)
+                                                {
+                                                    <text>(@start - @end из @totalItems объектов)</text>
+                                                }
+                                            }
                                         </small>
                                     </div>
                                 </nav>

@@ -1,5 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Регистрация";
+
+    // Проверяем, регистрирует ли админ
+    var isAdminCreating = Context.Session.GetString("UserType") == "Admin";
+    ViewBag.IsAdminCreating = isAdminCreating;
 }
 
 <div class="container mt-5">
@@ -16,6 +20,12 @@
                     }
 
                     <form method="post" asp-action="Register" asp-controller="Account">
+                        <!-- Скрытое поле для определения контекста -->
+                        @if (isAdminCreating)
+                        {
+                            <input type="hidden" name="adminContext" value="true" />
+                            <input type="hidden" name="returnTo" value="ViewAll" />
+                        }
                         <h5 class="text-primary mb-3">Основные данные</h5>
                         
                         <div class="row">

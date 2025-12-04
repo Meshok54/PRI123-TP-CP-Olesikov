@@ -1,9 +1,319 @@
 ﻿@{
-    ViewData["Title"] = "Все пользователи";
+    ViewData["Title"] = "Управление пользователями";
 }
 
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-users-cog"></i> Управление пользователями</h2>
+            <p class="text-muted">Всего пользователей: @ViewBag.TotalUsers</p>
+        </div>
+        <div class="col-auto">
+            <a href="@Url.Action("Register", "Account")" class="btn btn-success">
+                <i class="fas fa-user-plus"></i> Создать нового пользователя
+            </a>
+        </div>
+    </div>
 
-<div class="container">
-    <h1>Все пользователи</h1>
-    <p>Здесь будет таблица со всеми зарегистрированными пользователями</p>
+    <!-- Фильтры и поиск -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-controller="Account" asp-action="ViewAll" class="row g-3">
+                <div class="col-md-3">
+                    <select class="form-select" name="userTypeFilter">
+                        <option value="all" selected="@(ViewBag.UserTypeFilter == "all")">Все роли</option>
+                        <option value="Citizen" selected="@(ViewBag.UserTypeFilter == "Citizen")">Граждане</option>
+                        <option value="Employee" selected="@(ViewBag.UserTypeFilter == "Employee")">Сотрудники</option>
+                        <option value="Admin" selected="@(ViewBag.UserTypeFilter == "Admin")">Администраторы</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="searchType">
+                        <option value="all" selected="@(ViewBag.SearchType == "all")">Все поля</option>
+                        <option value="fullName" selected="@(ViewBag.SearchType == "fullName")">По ФИО</option>
+                        <option value="login" selected="@(ViewBag.SearchType == "login")">По логину</option>
+                        <option value="email" selected="@(ViewBag.SearchType == "email")">По email</option>
+                        <option value="phone" selected="@(ViewBag.SearchType == "phone")">По телефону</option>
+                        <option value="passport" selected="@(ViewBag.SearchType == "passport")">По паспорту</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="search" 
+                           placeholder="Введите текст для поиска..." value="@ViewBag.Search">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Поиск
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Список пользователей</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Логин</th>
+                            <th>ФИО</th>
+                            <th>Email</th>
+                            <th>Телефон</th>
+                            <th>Роль</th>
+                            <th>Доп. данные</th>
+                            <th>Дата регистрации</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.Users != null && ((List<Cadastral_Management.Controllers.AccountController.UserAdminViewModel>)ViewBag.Users).Count > 0)
+                        {
+                            @foreach (var userVm in (List<Cadastral_Management.Controllers.AccountController.UserAdminViewModel>)ViewBag.Users)
+                            {
+                                var user = userVm.User;
+                                <tr>
+                                    <td>@user.UserId</td>
+                                    <td>
+                                        <strong>@user.Login</strong>
+                                        @if (Context.Session.GetString("UserId") == user.UserId.ToString())
+                                        {
+                                            <span class="badge bg-info">Вы</span>
+                                        }
+                                    </td>
+                                    <td>@user.FullName</td>
+                                    <td>@user.Email</td>
+                                    <td>@(user.PhoneNumber ?? "не указан")</td>
+                                    <td>
+                                        <select class="form-select form-select-sm user-role-select" 
+                                                data-user-id="@user.UserId" 
+                                                style="width: auto; display: inline-block;">
+                                            <option value="Citizen" selected="@(user.UserType == "Citizen")">Гражданин</option>
+                                            <option value="Employee" selected="@(user.UserType == "Employee")">Сотрудник</option>
+                                            <option value="Admin" selected="@(user.UserType == "Admin")">Админ</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        @if (user.UserType == "Citizen" && userVm.Citizen != null)
+                                        {
+                                            var passport = userVm.Citizen.PassportData;
+                                            if (passport.Length == 10)
+                                            {
+                                                <span>Паспорт: @passport.Substring(0, 1)******@passport.Substring(7)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Паспорт: @passport</span>
+                                            }
+                                        }
+                                        else if ((user.UserType == "Employee" || user.UserType == "Admin") && userVm.Employee != null)
+                                        {
+                                            <div class="department-container">
+                                                <span class="department-text">@userVm.Employee.Department</span>
+                                                <button class="btn btn-sm btn-outline-primary edit-department-btn" 
+                                                        data-user-id="@user.UserId"
+                                                        data-current-department="@userVm.Employee.Department">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">нет данных</span>
+                                        }
+                                    </td>
+                                    <td>@user.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger delete-user-btn" 
+                                                data-user-id="@user.UserId"
+                                                data-user-name="@user.FullName">
+                                            <i class="fas fa-trash"></i> Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                                    <p class="text-muted">Пользователи не найдены</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Пагинация -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <div class="card-footer">
+                <nav aria-label="Навигация по страницам">
+                    <ul class="pagination justify-content-center mb-0">
+                        @if (ViewBag.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="@Url.Action("ViewAll", "Account", new { 
+                                       page = ViewBag.CurrentPage - 1, 
+                                       search = ViewBag.Search, 
+                                       searchType = ViewBag.SearchType,
+                                       userTypeFilter = ViewBag.UserTypeFilter 
+                                   })">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                <a class="page-link" 
+                                   href="@Url.Action("ViewAll", "Account", new { 
+                                       page = i, 
+                                       search = ViewBag.Search, 
+                                       searchType = ViewBag.SearchType,
+                                       userTypeFilter = ViewBag.UserTypeFilter 
+                                   })">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="@Url.Action("ViewAll", "Account", new { 
+                                       page = ViewBag.CurrentPage + 1, 
+                                       search = ViewBag.Search, 
+                                       searchType = ViewBag.SearchType,
+                                       userTypeFilter = ViewBag.UserTypeFilter 
+                                   })">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">
+                            Страница @ViewBag.CurrentPage из @ViewBag.TotalPages
+                            (@((ViewBag.CurrentPage - 1) * ViewBag.PageSize + 1) - 
+                            @Math.Min(ViewBag.CurrentPage * ViewBag.PageSize, ViewBag.TotalUsers) из @ViewBag.TotalUsers пользователей)
+                        </small>
+                    </div>
+                </nav>
+            </div>
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Изменение роли пользователя
+        document.querySelectorAll('.user-role-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const userId = this.dataset.userId;
+                const newRole = this.value;
+        
+                if (confirm('Вы уверены, что хотите изменить роль пользователя?')) {
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+                    formData.append('newUserType', newRole);
+            
+                    fetch('@Url.Action("ChangeUserType", "Account")', {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Роль успешно изменена!');
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                            this.value = this.defaultValue;
+                        }
+                    })
+                    .catch(error => {
+                        alert('Ошибка сети: ' + error);
+                        this.value = this.defaultValue;
+                    });
+                } else {
+                    this.value = this.defaultValue;
+                }
+            });
+        });
+
+        // Удаление пользователя
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                const userName = this.dataset.userName;
+        
+                if (confirm(`Вы уверены, что хотите удалить пользователя "${userName}"?`)) {
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+            
+                    fetch('@Url.Action("DeleteUser", "Account")', {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Пользователь успешно удален!');
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Ошибка сети: ' + error);
+                    });
+                }
+            });
+        });
+
+        // Редактирование отдела сотрудника
+        document.querySelectorAll('.edit-department-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                const currentDepartment = this.dataset.currentDepartment;
+        
+                const newDepartment = prompt('Введите новый отдел:', currentDepartment);
+        
+                if (newDepartment && newDepartment.trim() !== '' && newDepartment !== currentDepartment) {
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+                    formData.append('newDepartment', newDepartment.trim());
+            
+                    fetch('@Url.Action("ChangeDepartment", "Account")', {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Отдел успешно изменен!');
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Ошибка сети: ' + error);
+                    });
+                }
+            });
+        });
+    </script>
+}

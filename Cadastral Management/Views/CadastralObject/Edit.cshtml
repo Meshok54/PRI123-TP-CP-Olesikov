@@ -42,8 +42,10 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="area" class="form-label">Площадь (кв.м) *</label>
-                                    <input type="number" class="form-control" id="area" name="area" 
-                                           value="@Model.Area" step="0.01" min="0.01" required>
+                                    <input type="text" class="form-control" id="area" name="area" 
+                                           value="@Model.Area.ToString(System.Globalization.CultureInfo.InvariantCulture)" 
+                                           pattern="^\d+(\.\d{1,2})?$" required>
+                                    <small class="form-text text-muted">Формат: 100.50</small>
                                 </div>
                             </div>
                             <div class="col-md-6">

@@ -170,8 +170,30 @@ namespace Cadastral_Management.Controllers
             if (!IsAuthorized())
                 return RedirectToAction("AccessDenied", "Home");
 
+            // Получаем объект для отображения в форме
+            var existingObject = await _context.CadastralObjects
+                .Include(co => co.Owner)
+                    .ThenInclude(o => o.User)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(co => co.CadastralObjectId == id);
+
+            if (existingObject == null)
+            {
+                return NotFound();
+            }
+
             try
             {
+                // Проверяем существование владельца
+                var owner = await _context.Citizens.FindAsync(ownerId);
+                if (owner == null)
+                {
+                    ModelState.AddModelError("ownerId", "Владелец с указанным ID не найден");
+                    // Возвращаем исходный объект с ошибкой
+                    return View(existingObject);
+                }
+
+                // Теперь получаем объект для обновления
                 var cadastralObject = await _context.CadastralObjects.FindAsync(id);
                 if (cadastralObject == null)
                 {
@@ -180,12 +202,12 @@ namespace Cadastral_Management.Controllers
 
                 // Сохраняем старые значения для истории
                 var oldValues = new Dictionary<string, string>
-                {
-                    { "Address", cadastralObject.Address },
-                    { "Area", cadastralObject.Area.ToString() },
-                    { "CadastralObjectType", cadastralObject.CadastralObjectType },
-                    { "OwnerId", cadastralObject.OwnerId.ToString() }
-                };
+        {
+            { "Address", cadastralObject.Address },
+            { "Area", cadastralObject.Area.ToString() },
+            { "CadastralObjectType", cadastralObject.CadastralObjectType },
+            { "OwnerId", cadastralObject.OwnerId.ToString() }
+        };
 
                 // Обновляем объект
                 cadastralObject.CadastralNumber = cadastralNumber;
@@ -198,7 +220,7 @@ namespace Cadastral_Management.Controllers
                 _context.Update(cadastralObject);
                 await _context.SaveChangesAsync();
 
-                // Создаем записи в истории для каждого измененного поля
+                // Создаем записи в истории
                 var employeeId = GetCurrentEmployeeId();
                 foreach (var change in oldValues)
                 {
@@ -225,7 +247,7 @@ namespace Cadastral_Management.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Ошибка при обновлении: {ex.Message}");
-                return View();
+                return View(existingObject);
             }
         }
 
