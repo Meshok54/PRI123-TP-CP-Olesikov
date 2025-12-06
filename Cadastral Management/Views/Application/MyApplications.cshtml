@@ -1,8 +1,363 @@
-﻿@{
+﻿@model List<Cadastral_Management.Models.Application>
+@{
     ViewData["Title"] = "Мои заявления";
+    
+    // Функция для получения цвета статуса
+    string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Принят к проверке" => "bg-secondary",
+            "На проверке" => "bg-warning text-dark",
+            "Одобрен" => "bg-success",
+            "Учтено" => "bg-info",
+            "Отклонен" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+    
+    string GetStatusIcon(string status)
+    {
+        return status switch
+        {
+            "Принят к проверке" => "fa-clock",
+            "На проверке" => "fa-search",
+            "Одобрен" => "fa-check-circle",
+            "Учтено" => "fa-file-check",
+            "Отклонен" => "fa-times-circle",
+            _ => "fa-question-circle"
+        };
+    }
 }
 
-<div class="container">
-    <h1>Мои заявления</h1>
-    <p>Здесь будет таблица с поданными мной заявлениями</p>
+<div class="container mt-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="fw-bold text-primary">
+                    <i class="fas fa-file-alt me-2"></i>Мои заявления
+                </h1>
+                <a asp-controller="Application" asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Подать новое заявление
+                </a>
+            </div>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body p-3">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2 mb-md-0">
+                            <div class="fw-bold text-primary">@Model.Count</div>
+                            <small class="text-muted">Всего заявлений</small>
+                        </div>
+                        <div class="col-md-3 mb-2 mb-md-0">
+                            <div class="fw-bold text-warning">
+                                @Model.Count(a => a.ApplicationStatus == "Принят к проверке" || 
+                                                   a.ApplicationStatus == "На проверке")
+                            </div>
+                            <small class="text-muted">В обработке</small>
+                        </div>
+                        <div class="col-md-3 mb-2 mb-md-0">
+                            <div class="fw-bold text-success">
+                                @Model.Count(a => a.ApplicationStatus == "Одобрен" || 
+                                                   a.ApplicationStatus == "Учтено")
+                            </div>
+                            <small class="text-muted">Успешно завершено</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="fw-bold text-danger">
+                                @Model.Count(a => a.ApplicationStatus == "Отклонен")
+                            </div>
+                            <small class="text-muted">Отклонено</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица заявлений -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Список заявлений</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="80">Id</th>
+                                        <th>Дата подачи</th>
+                                        <th>Тип заявления</th>
+                                        <th>Статус</th>
+                                        <th>Объект</th>
+                                        <th>Дата обновления</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var app in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@app.ApplicationId</strong>
+                                            </td>
+                                            <td>
+                                                @app.ApplicationDate.ToString("dd.MM.yyyy")
+                                                <br>
+                                                <small class="text-muted">@app.ApplicationDate.ToString("HH:mm")</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge 
+                                                    @(app.ApplicationType == "Регистрация" ? "bg-info" : "bg-warning")">
+                                                    @app.ApplicationType
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(app.ApplicationStatus)">
+                                                    <i class="fas @GetStatusIcon(app.ApplicationStatus) me-1"></i>
+                                                    @app.ApplicationStatus
+                                                </span>
+                                                @if (!string.IsNullOrEmpty(app.DecisionComment))
+                                                {
+                                                    <br>
+                                                    <small class="text-muted" title="@app.DecisionComment">
+                                                        <i class="fas fa-comment me-1"></i>
+                                                        @(app.DecisionComment.Length > 30 ? app.DecisionComment.Substring(0, 30) + "..." : app.DecisionComment)
+                                                    </small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (app.CadastralObjectId.HasValue && app.CadastralObject != null)
+                                                {
+                                                    if (app.ApplicationType == "Обновление")
+                                                    {
+                                                        // Для обновления показываем кадастровый номер
+                                                        <small>
+                                                            <strong>@app.CadastralObject.CadastralNumber</strong>
+                                                            <br>
+                                                            <span class="text-muted">Обновление объекта</span>
+                                                        </small>
+                                                    }
+                                                    else
+                                                    {
+                                                        // Для регистрации или если нет кадастрового номера
+                                                        <small>Объект: #@app.CadastralObjectId</small>
+                                                    }
+                                                }
+                                                else if (!string.IsNullOrEmpty(app.CitizenComment))
+                                                {
+                                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" 
+                                                           title="@app.CitizenComment">
+                                                        @(app.CitizenComment.Length > 30 ? app.CitizenComment.Substring(0, 30) + "..." : app.CitizenComment)
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">Нет информации</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @app.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">У вас пока нет заявлений</h5>
+                            <p class="text-muted mb-4">Подайте свое первое заявление на кадастровый учет</p>
+                            <a asp-controller="Application" asp-action="Create" class="btn btn-primary">
+                                <i class="fas fa-file-alt me-1"></i> Подать заявление
+                            </a>
+                        </div>
+                    }
+                </div>
+                
+                @if (Model.Any())
+                {
+                    <div class="card-footer bg-light">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Показано @Model.Count заявлений
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small class="text-muted">
+                                    Последнее обновление: @DateTime.Now.ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры и сортировка -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Фильтры</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <select class="form-select form-select-sm" id="statusFilter">
+                                <option value="all">Все статусы</option>
+                                <option value="Принят к проверке">Принят к проверке</option>
+                                <option value="На проверке">На проверке</option>
+                                <option value="Одобрен">Одобрен</option>
+                                <option value="Учтено">Учтено</option>
+                                <option value="Отклонен">Отклонен</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <select class="form-select form-select-sm" id="typeFilter">
+                                <option value="all">Все типы</option>
+                                <option value="Регистрация">Регистрация</option>
+                                <option value="Обновление">Обновление</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <input type="text" class="form-control form-control-sm" 
+                                   id="searchInput" placeholder="Поиск по кадастровому номеру...">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <button class="btn btn-sm btn-outline-secondary w-100" id="resetFilters">
+                                <i class="fas fa-redo"></i> Сбросить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Фильтрация таблицы
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusFilter = document.getElementById('statusFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const searchInput = document.getElementById('searchInput');
+            const resetBtn = document.getElementById('resetFilters');
+            const tableRows = document.querySelectorAll('tbody tr');
+
+            function filterTable() {
+                const statusValue = statusFilter.value;
+                const typeValue = typeFilter.value;
+                const searchValue = searchInput.value.toLowerCase();
+                
+                tableRows.forEach(row => {
+                    const statusCell = row.querySelector('td:nth-child(4)');
+                    const typeCell = row.querySelector('td:nth-child(3)');
+                    const objectCell = row.querySelector('td:nth-child(5)');
+                    
+                    const statusText = statusCell.textContent.toLowerCase();
+                    const typeText = typeCell.textContent.toLowerCase();
+                    const objectText = objectCell.textContent.toLowerCase();
+                    
+                    let showRow = true;
+                    
+                    // Фильтр по статусу
+                    if (statusValue !== 'all' && !statusText.includes(statusValue.toLowerCase())) {
+                        showRow = false;
+                    }
+                    
+                    // Фильтр по типу
+                    if (typeValue !== 'all' && !typeText.includes(typeValue.toLowerCase())) {
+                        showRow = false;
+                    }
+                    
+                    // Поиск по кадастровому номеру
+                    if (searchValue && !objectText.includes(searchValue)) {
+                        showRow = false;
+                    }
+                    
+                    row.style.display = showRow ? '' : 'none';
+                });
+            }
+            
+            statusFilter.addEventListener('change', filterTable);
+            typeFilter.addEventListener('change', filterTable);
+            searchInput.addEventListener('input', filterTable);
+            
+            resetBtn.addEventListener('click', function() {
+                statusFilter.value = 'all';
+                typeFilter.value = 'all';
+                searchInput.value = '';
+                tableRows.forEach(row => row.style.display = '');
+            });
+            
+            // Изначальная фильтрация (если есть параметры в URL)
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusParam = urlParams.get('status');
+            const typeParam = urlParams.get('type');
+            
+            if (statusParam) {
+                statusFilter.value = statusParam;
+            }
+            if (typeParam) {
+                typeFilter.value = typeParam;
+            }
+            
+            filterTable();
+        });
+        
+        // Автообновление статусов каждые 30 секунд
+        function autoRefreshStatus() {
+            setTimeout(function() {
+                window.location.reload();
+            }, 30000); // 30 секунд
+        }
+        
+        // Запускаем автообновление только если есть заявления в обработке
+        const inProgressCount = @Model.Count(a => a.ApplicationStatus == "Принят к проверке" || a.ApplicationStatus == "На проверке");
+        if (inProgressCount > 0) {
+            autoRefreshStatus();
+            console.log('Автообновление включено (30 сек) - заявления в обработке: ' + inProgressCount);
+        }
+    </script>
+    
+    <style>
+        .badge {
+            font-size: 0.85em;
+            padding: 0.4em 0.8em;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        .card {
+            border-radius: 10px;
+        }
+        
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        tr:hover {
+            background-color: rgba(0, 123, 255, 0.05) !important;
+        }
+    </style>
+}

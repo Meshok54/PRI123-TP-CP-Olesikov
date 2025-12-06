@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Cadastral_Management.Models
 {
+    [Table("applicationhistory")]
     public class ApplicationHistory
     {
         [Key]
@@ -13,7 +14,7 @@ namespace Cadastral_Management.Models
         public int ApplicationId { get; set; }
 
         [Column("changed_by_employee_id")]
-        public int ChangedByEmployeeId { get; set; }
+        public int? ChangedByEmployeeId { get; set; }
 
         [Column("old_status")]
         public string? OldStatus { get; set; }
@@ -31,6 +32,6 @@ namespace Cadastral_Management.Models
 
 
         public Application Application { get; set; }
-        public Employee ChangedByEmployee { get; set; }
+        public Employee? ChangedByEmployee { get; set; }
     }
 }

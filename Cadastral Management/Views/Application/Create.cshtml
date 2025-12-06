@@ -12,14 +12,24 @@
                 <div class="card-body p-4">
                     @if (ViewBag.Error != null)
                     {
-                        <div class="alert alert-danger">@ViewBag.Error</div>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @Html.Raw(ViewBag.Error)
+                        </div>
                     }
                     @if (ViewBag.Success != null)
                     {
-                        <div class="alert alert-success">@ViewBag.Success</div>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            @Html.Raw(ViewBag.Success)
+                            <br><br>
+                            <a href="@Url.Action("MyApplications", "Application")" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-list me-1"></i> Перейти к моим заявлениям
+                            </a>
+                        </div>
                     }
 
-                    <form method="post" asp-action="Create" asp-controller="Application">
+                    <form method="post" asp-action="Create" asp-controller="Application" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="applicationType" class="form-label">Тип заявления *</label>
                             <select class="form-select" id="applicationType" name="applicationType" required>
@@ -31,12 +41,12 @@
 
                         <h5 class="text-primary mb-3">Данные кадастрового объекта</h5>
                         
-                        <div class="mb-3">
+                        <div class="mb-3" id="cadastralNumberGroup">
                             <label for="cadastralNumber" class="form-label">Кадастровый номер</label>
                             <input type="text" class="form-control" id="cadastralNumber" name="cadastralNumber" 
                                    placeholder="XX:XX:XXX:XXXX" maxlength="14"
                                    pattern="\d{2}:\d{2}:\d{3}:\d{4}">
-                            <small class="form-text text-muted">Формат: XX:XX:XXX:XXXX</small>
+                            <small class="form-text text-muted">Формат: XX:XX:XXX:XXXX (требуется для обновления)</small>
                         </div>
 
                         <div class="mb-3">
@@ -49,8 +59,9 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="area" class="form-label">Площадь (кв.м) *</label>
-                                    <input type="number" class="form-control" id="area" name="area" 
-                                           step="0.01" min="0.01" placeholder="100.50" required>
+                                    <input type="text" class="form-control" id="area" name="area" 
+                                           placeholder="100.50" pattern="^\d+(\.\d{1,2})?$" required>
+                                    <small class="form-text text-muted">Формат: 100.50</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -69,18 +80,30 @@
                         <div class="mb-3">
                             <label for="citizenComment" class="form-label">Комментарий</label>
                             <textarea class="form-control" id="citizenComment" name="citizenComment" 
-                                      rows="4" placeholder="Дополнительная информация, примечания..."></textarea>
+                                      rows="3" placeholder="Дополнительная информация, примечания..."></textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Прикрепленные документы</label>
-                            <div class="border rounded p-3 bg-light">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> 
-                                    Функционал загрузки документов будет добавлен позже. 
-                                    При необходимости прикрепите документы при личном визите.
-                                </small>
+                            <label for="documentFile" class="form-label">Прикрепить документ</label>
+                            <input type="file" class="form-control" id="documentFile" name="documentFile" 
+                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Поддерживаемые форматы: PDF, DOC, DOCX, JPG, JPEG, PNG
+                                <br>
+                                <i class="fas fa-info-circle text-info"></i>
+                                Максимальный размер файла: 10 МБ
+                                <br>
+                                <i class="fas fa-info-circle text-info"></i>
+                                Рекомендуемые документы: паспорт, правоустанавливающие документы, планы
                             </div>
+                            <div id="filePreview" class="mt-2"></div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Внимание!</strong> После подачи заявления будет создана запись в истории. 
+                            Статус заявления можно отслеживать в личном кабинете.
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
@@ -103,17 +126,57 @@
         document.addEventListener('DOMContentLoaded', function() {
             const applicationType = document.getElementById('applicationType');
             const cadastralNumber = document.getElementById('cadastralNumber');
+            const cadastralNumberGroup = document.getElementById('cadastralNumberGroup');
+            const documentFile = document.getElementById('documentFile');
+            const filePreview = document.getElementById('filePreview');
+            const areaInput = document.getElementById('area');
 
-            applicationType.addEventListener('change', function() {
-                if (this.value === 'Обновление') {
+            // Функция для обновления видимости поля кадастрового номера
+            function updateCadastralNumberVisibility() {
+                if (applicationType.value === 'Обновление') {
+                    // Показать поле и сделать обязательным
+                    cadastralNumberGroup.style.opacity = '1';
+                    cadastralNumberGroup.style.display = 'block';
                     cadastralNumber.required = true;
-                    cadastralNumber.closest('.mb-3').style.display = 'block';
-                } else {
+                    cadastralNumber.disabled = false;
+                    
+                    // Анимация появления
+                    cadastralNumberGroup.style.transition = 'opacity 0.3s ease';
+                    
+                } else if (applicationType.value === 'Регистрация') {
+                    // Сделать поле полупрозрачным и необязательным
+                    cadastralNumberGroup.style.opacity = '0.5';
+                    cadastralNumberGroup.style.display = 'block';
                     cadastralNumber.required = false;
-                    cadastralNumber.closest('.mb-3').style.display = 'block';
+                    cadastralNumber.disabled = true;
+                    cadastralNumber.value = '';
+                    
+                    // Анимация исчезновения
+                    cadastralNumberGroup.style.transition = 'opacity 0.3s ease';
+                    
+                } else {
+                    // Значение не выбрано - скрыть поле
+                    cadastralNumberGroup.style.opacity = '0.5';
+                    cadastralNumberGroup.style.display = 'none';
+                    cadastralNumber.required = false;
+                    cadastralNumber.value = '';
+                }
+            }
+
+            // Инициализация при загрузке страницы
+            updateCadastralNumberVisibility();
+
+            // Обработчик изменения типа заявления
+            applicationType.addEventListener('change', function() {
+                updateCadastralNumberVisibility();
+                
+                // Если выбрано "Обновление", фокус на поле кадастрового номера
+                if (this.value === 'Обновление') {
+                    setTimeout(() => cadastralNumber.focus(), 100);
                 }
             });
 
+            // Форматирование кадастрового номера
             cadastralNumber.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\D/g, '');
                 if (value.length >= 2) value = value.substring(0,2) + ':' + value.substring(2);
@@ -121,6 +184,133 @@
                 if (value.length >= 9) value = value.substring(0,9) + ':' + value.substring(9);
                 e.target.value = value.substring(0, 14);
             });
+
+            // Замена запятой на точку в площади
+            areaInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(',', '.');
+            });
+
+            // Предпросмотр файла
+            documentFile.addEventListener('change', function(e) {
+                filePreview.innerHTML = '';
+                
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const fileSize = (file.size / (1024 * 1024)).toFixed(2); // МБ
+                    
+                    if (file.size > 10 * 1024 * 1024) {
+                        filePreview.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Файл слишком большой (${fileSize} МБ). Максимум 10 МБ.
+                            </div>
+                        `;
+                        this.value = '';
+                        return;
+                    }
+                    
+                    const fileIcon = getFileIcon(file.name);
+                    
+                    filePreview.innerHTML = `
+                        <div class="card border-success">
+                            <div class="card-body p-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3" style="font-size: 2rem;">
+                                        ${fileIcon}
+                                    </div>
+                                    <div>
+                                        <strong>${file.name}</strong>
+                                        <div class="text-muted small">
+                                            ${fileSize} МБ • ${getFileType(file.name)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Валидация формы перед отправкой
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const selectedType = applicationType.value;
+                const cadastralValue = cadastralNumber.value.trim();
+                
+                if (selectedType === 'Обновление') {
+                    // Проверка для "Обновления"
+                    if (!cadastralValue) {
+                        e.preventDefault();
+                        alert('Для заявления типа "Обновление" необходимо указать кадастровый номер');
+                        cadastralNumber.focus();
+                        return false;
+                    }
+                    
+                    if (!/^\d{2}:\d{2}:\d{3}:\d{4}$/.test(cadastralValue)) {
+                        e.preventDefault();
+                        alert('Кадастровый номер должен соответствовать формату XX:XX:XXX:XXXX');
+                        cadastralNumber.focus();
+                        return false;
+                    }
+                } else if (selectedType === 'Регистрация') {
+                    // Для "Регистрации" очищаем поле, если оно было заполнено
+                    cadastralNumber.value = '';
+                }
+                
+                // Проверка площади
+                const areaValue = areaInput.value.trim();
+                if (!/^\d+(\.\d{1,2})?$/.test(areaValue)) {
+                    e.preventDefault();
+                    alert('Площадь должна быть числом в формате 100.50');
+                    areaInput.focus();
+                    return false;
+                }
+                
+                return true;
+            });
+
+            // Вспомогательные функции
+            function getFileIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                switch(ext) {
+                    case 'pdf': return '<i class="fas fa-file-pdf text-danger"></i>';
+                    case 'doc':
+                    case 'docx': return '<i class="fas fa-file-word text-primary"></i>';
+                    case 'jpg':
+                    case 'jpeg':
+                    case 'png': return '<i class="fas fa-file-image text-success"></i>';
+                    default: return '<i class="fas fa-file text-secondary"></i>';
+                }
+            }
+
+            function getFileType(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                switch(ext) {
+                    case 'pdf': return 'PDF документ';
+                    case 'doc': return 'Word документ (DOC)';
+                    case 'docx': return 'Word документ (DOCX)';
+                    case 'jpg': return 'Изображение (JPG)';
+                    case 'jpeg': return 'Изображение (JPEG)';
+                    case 'png': return 'Изображение (PNG)';
+                    default: return 'Файл';
+                }
+            }
         });
     </script>
+    
+    <style>
+        /* Дополнительные стили для полупрозрачного поля */
+        #cadastralNumberGroup.faded {
+            opacity: 0.5;
+        }
+        
+        #cadastralNumber:disabled {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+        
+        /* Плавная анимация */
+        #cadastralNumberGroup {
+            transition: opacity 0.3s ease, display 0.3s ease;
+        }
+    </style>
 }

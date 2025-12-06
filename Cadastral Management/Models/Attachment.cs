@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Cadastral_Management.Models
 {
+    [Table("attachments")]
     public class Attachment
     {
         [Key]

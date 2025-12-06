@@ -34,7 +34,8 @@ namespace Cadastral_Management.Controllers
             string address,
             decimal area,
             string objectType,
-            string citizenComment)
+            string citizenComment,
+            IFormFile documentFile)
         {
             try
             {
@@ -46,12 +47,33 @@ namespace Cadastral_Management.Controllers
 
                 var citizenId = int.Parse(userId);
 
+                // Проверка типа заявления
                 if (applicationType == "Обновление" && string.IsNullOrEmpty(cadastralNumber))
                 {
                     ViewBag.Error = "Для заявления типа 'Обновление' необходимо указать кадастровый номер";
                     return View();
                 }
 
+                // Валидация файла (если загружен)
+                if (documentFile != null && documentFile.Length > 0)
+                {
+                    var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+                    var extension = Path.GetExtension(documentFile.FileName).ToLowerInvariant();
+
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        ViewBag.Error = "Недопустимый формат файла. Разрешены: PDF, DOC, DOCX, JPG, JPEG, PNG";
+                        return View();
+                    }
+
+                    if (documentFile.Length > 10 * 1024 * 1024) // 10 MB
+                    {
+                        ViewBag.Error = "Размер файла не должен превышать 10 МБ";
+                        return View();
+                    }
+                }
+
+                // Создание заявления
                 var application = new Application
                 {
                     ApplicationDate = DateTime.Now,
@@ -64,7 +86,7 @@ namespace Cadastral_Management.Controllers
 
                 if (applicationType == "Регистрация")
                 {
-                    application.CitizenComment = $"НОВЫЙ ОБЪЕКТ: {address}, {area} кв.м, {objectType}. " +
+                    application.CitizenComment = $"{address}, {area} кв.м, {objectType}. " +
                                                 (string.IsNullOrEmpty(citizenComment) ? "" : $"Комментарий: {citizenComment}");
                 }
                 else if (applicationType == "Обновление")
@@ -83,18 +105,68 @@ namespace Cadastral_Management.Controllers
                                                 (string.IsNullOrEmpty(citizenComment) ? "" : $"Комментарий: {citizenComment}");
                 }
 
+                // Сохраняем заявление
                 _context.Applications.Add(application);
                 await _context.SaveChangesAsync();
 
-                ViewBag.Success = "Заявление успешно подано! Номер вашего заявления: " + application.ApplicationId;
+                // Создаем запись в истории
+                var history = new ApplicationHistory
+                {
+                    ApplicationId = application.ApplicationId,
+                    OldStatus = null,
+                    NewStatus = "Принят к проверке",
+                    ChangeDate = DateTime.Now,
+                    ChangedByEmployeeId = null,
+                    HistoryComment = "Заявление создано автоматически системой"
+                };
+                _context.ApplicationHistories.Add(history);
 
+                // Сохраняем документ (если есть)
+                if (documentFile != null && documentFile.Length > 0)
+                {
+                    var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "applications");
+
+                    // Создаем папку, если не существует
+                    if (!Directory.Exists(uploadsPath))
+                    {
+                        Directory.CreateDirectory(uploadsPath);
+                    }
+
+                    // Генерируем уникальное имя файла
+                    var fileName = $"{application.ApplicationId}_{Guid.NewGuid()}{Path.GetExtension(documentFile.FileName)}";
+                    var filePath = Path.Combine(uploadsPath, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await documentFile.CopyToAsync(stream);
+                    }
+
+                    // Создаем запись в Attachments
+                    var attachment = new Attachment
+                    {
+                        ApplicationId = application.ApplicationId,
+                        FileName = documentFile.FileName,
+                        FilePath = $"/uploads/applications/{fileName}",
+                        UploadDate = DateTime.Now
+                    };
+                    _context.Attachments.Add(attachment);
+                }
+
+                await _context.SaveChangesAsync();
+
+                ViewBag.Success = $"Заявление успешно подано! Номер вашего заявления: {application.ApplicationId}";
+                if (documentFile != null)
+                {
+                    ViewBag.Success += "<br>Документ успешно прикреплен.";
+                }
+
+                // Очищаем форму
                 ModelState.Clear();
-
                 return View();
             }
             catch (Exception ex)
             {
-                ViewBag.Error = "Произошла ошибка при подаче заявления. Попробуйте еще раз.";
+                ViewBag.Error = $"Произошла ошибка при подаче заявления: {ex.Message}";
                 return View();
             }
         }
@@ -122,6 +194,7 @@ namespace Cadastral_Management.Controllers
             var citizenId = int.Parse(userId);
 
             var applications = await _context.Applications
+                .Include(a => a.CadastralObject)
                 .Where(a => a.ApplicantId == citizenId)
                 .OrderByDescending(a => a.ApplicationDate)
                 .ToListAsync();
