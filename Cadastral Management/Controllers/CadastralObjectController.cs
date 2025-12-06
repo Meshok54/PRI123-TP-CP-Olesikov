@@ -15,6 +15,12 @@ namespace Cadastral_Management.Controllers
             _context = context;
         }
 
+        // GET: /CadastralObject/MyCadastralObjects
+        public IActionResult MyCadastralObjects()
+        {
+            return View();
+        }
+
         // GET: /CadastralObject/Create
         public IActionResult Create()
         {

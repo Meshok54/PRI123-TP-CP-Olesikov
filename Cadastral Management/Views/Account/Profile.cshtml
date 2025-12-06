@@ -1,7 +1,253 @@
 ﻿@{
     ViewData["Title"] = "Профиль пользователя";
+    
+    // Получаем данные из ViewBag
+    var user = ViewBag.UserData as Cadastral_Management.Models.User;
+    var userType = ViewBag.UserType;
+    var cadastralObjects = ViewBag.CadastralObjects as List<Cadastral_Management.Models.CadastralObject>;
+    var passportData = ViewBag.PassportData as string;
+    var department = ViewBag.Department as string;
 }
 
-<div class="container mt-5">
-    <h2 class="fw-bold">Здесь будет информация о пользователе (его профиль)</h2>
+<div class="container mt-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="fw-bold text-primary">
+                <i class="fas fa-user-circle me-2"></i>Профиль пользователя
+            </h1>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Информация о пользователе -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Личная информация</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td width="30%"><strong>ФИО:</strong></td>
+                            <td>@user.FullName</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Логин:</strong></td>
+                            <td>@user.Login</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>@user.Email</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(user.PhoneNumber))
+                        {
+                            <tr>
+                                <td><strong>Телефон:</strong></td>
+                                <td>@user.PhoneNumber</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td><strong>Роль:</strong></td>
+                            <td>
+                                <span class="badge 
+                                    @(userType == "Admin" ? "bg-danger" : 
+                                      userType == "Employee" ? "bg-warning" : "bg-success")">
+                                    @(userType == "Admin" ? "Администратор" : 
+                                      userType == "Employee" ? "Сотрудник" : "Гражданин")
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Дата регистрации:</strong></td>
+                            <td>@user.CreatedAt.ToString("dd.MM.yyyy")</td>
+                        </tr>
+                        
+                        <!-- Дополнительная информация -->
+                        @if (userType == "Citizen" && !string.IsNullOrEmpty(passportData))
+                        {
+                            <tr>
+                                <td><strong>Паспорт:</strong></td>
+                                <td>@passportData</td>
+                            </tr>
+                        }
+                        @if ((userType == "Employee" || userType == "Admin") && !string.IsNullOrEmpty(department))
+                        {
+                            <tr>
+                                <td><strong>Отдел:</strong></td>
+                                <td>@department</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Быстрые действия</h5>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="d-grid gap-2">
+                        @if (userType == "Citizen")
+                        {
+                            <a class="btn btn-primary" asp-controller="Application" asp-action="Create">
+                                <i class="fas fa-file-alt me-2"></i> Подать заявление
+                            </a>
+                            <a class="btn btn-success" asp-controller="Extract" asp-action="MyExtracts">
+                                <i class="fas fa-download me-2"></i> Мои выписки
+                            </a>
+                            <a class="btn btn-outline-secondary" asp-controller="Application" asp-action="MyApplications">
+                                <i class="fas fa-list me-2"></i> Мои заявления
+                            </a>
+                        }
+                        else if (userType == "Employee" || userType == "Admin")
+                        {
+                            <a class="btn btn-primary" asp-controller="Application" asp-action="ViewAll">
+                                <i class="fas fa-tasks me-2"></i> Все заявления
+                            </a>
+                            <a class="btn btn-success" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-building me-2"></i> Кадастровые объекты
+                            </a>
+                            @if (userType == "Admin")
+                            {
+                                <a class="btn btn-danger" asp-controller="Account" asp-action="ViewAll">
+                                    <i class="fas fa-users me-2"></i> Управление пользователями
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кадастровые объекты (только для граждан) -->
+    @if (userType == "Citizen")
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-home me-2"></i> Мои объекты недвижимости</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (cadastralObjects != null && cadastralObjects.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="40">№</th>
+                                            <th>Кадастровый номер</th>
+                                            <th>Адрес</th>
+                                            <th>Тип</th>
+                                            <th>Площадь</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < cadastralObjects.Count; i++)
+                                        {
+                                            var obj = cadastralObjects[i];
+                                            <tr>
+                                                <td class="text-muted">@(i + 1)</td>
+                                                <td>
+                                                    <strong>@obj.CadastralNumber</strong>
+                                                </td>
+                                                <td title="@obj.Address" class="text-truncate" style="max-width: 300px;">
+                                                    @obj.Address
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">@obj.CadastralObjectType</span>
+                                                </td>
+                                                <td>@obj.Area.ToString("N2") кв.м</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    Всего объектов: @cadastralObjects.Count • 
+                                    Общая площадь: @{
+                                        if (cadastralObjects.Any())
+                                        {
+                                            <text>@cadastralObjects.Sum(o => o.Area).ToString("N2") кв.м</text>
+                                        }
+                                        else
+                                        {
+                                            <text>0 кв.м</text>
+                                        }
+                                    }
+                                </small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">У вас нет кадастровых объектов</h5>
+                                <p class="text-muted">Зарегистрируйте свой первый объект недвижимости</p>
+                                <a class="btn btn-primary" asp-controller="Application" asp-action="Create">
+                                    <i class="fas fa-file-alt me-1"></i> Подать заявление на регистрацию
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Статистика для сотрудников и админов -->
+    @if (userType == "Employee" || userType == "Admin")
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Статистика системы</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="display-6 fw-bold text-primary">@ViewBag.TotalObjects</div>
+                                <p class="text-muted">Объектов в системе</p>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="display-6 fw-bold text-success">@ViewBag.TotalApplications</div>
+                                <p class="text-muted">Всего заявлений</p>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="display-6 fw-bold text-warning">@ViewBag.PendingApplications</div>
+                                <p class="text-muted">Заявлений в работе</p>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="display-6 fw-bold text-info">@ViewBag.TotalCitizens</div>
+                                <p class="text-muted">Зарегистрированных граждан</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Информация о системе -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        ID пользователя: @user.UserId • 
+                        Последняя активность: @DateTime.Now.ToString("HH:mm")
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

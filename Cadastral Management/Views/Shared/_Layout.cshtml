@@ -32,18 +32,23 @@
                     @if (Context.Session.GetString("UserType") == "Citizen")
                     {
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Application" asp-action="Create" id="createApplicationLink">
+                            <a class="nav-link" asp-controller="CadastralObject" asp-action="MyCadastralObjects">
+                                Мои кадастровые объекты
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Application" asp-action="Create">
                                 Подать заявление на учет
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Extract" asp-action="Request" id="requestExtractLink">
-                                Запросить кадастровую выписку
+                            <a class="nav-link" asp-controller="Application" asp-action="MyApplications">
+                                Мои заявления
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Application" asp-action="MyApplications" id="requestExtractLink">
-                                Мои заявления
+                            <a class="nav-link" asp-controller="Extract" asp-action="MyExtracts">
+                                Мои выписки
                             </a>
                         </li>
                     }

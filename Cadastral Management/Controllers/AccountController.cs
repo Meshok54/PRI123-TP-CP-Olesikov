@@ -162,8 +162,63 @@ namespace Cadastral_Management.Controllers
         }
 
         // GET: /Account/Profile - открыть страницу профиля
-        public IActionResult Profile()
+        public async Task<IActionResult> Profile()
         {
+            // Проверяем авторизацию
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            int userId = int.Parse(userIdStr);
+            var userType = HttpContext.Session.GetString("UserType");
+
+            // Получаем базовые данные пользователя
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Передаем данные через ViewBag
+            ViewBag.UserData = user;
+            ViewBag.UserType = userType;
+
+            // Для граждан получаем их объекты
+            if (userType == "Citizen")
+            {
+                var objects = await _context.CadastralObjects
+                    .Where(co => co.OwnerId == userId)
+                    .OrderByDescending(co => co.RegistrationDate)
+                    .ToListAsync();
+
+                ViewBag.CadastralObjects = objects;
+
+                // Паспортные данные
+                var citizen = await _context.Citizens.FindAsync(userId);
+                ViewBag.PassportData = citizen?.PassportData;
+            }
+            // Для сотрудников получаем отдел
+            else if (userType == "Employee" || userType == "Admin")
+            {
+                var employee = await _context.Employees.FindAsync(userId);
+                ViewBag.Department = employee?.Department;
+
+                // Статистика системы (только для сотрудников и админов)
+                var totalObjects = await _context.CadastralObjects.CountAsync();
+                var totalApplications = await _context.Applications.CountAsync();
+                var pendingApplications = await _context.Applications
+                    .CountAsync(a => a.ApplicationStatus == "Принят к проверке" ||
+                                    a.ApplicationStatus == "На проверке");
+                var totalCitizens = await _context.Citizens.CountAsync();
+
+                ViewBag.TotalObjects = totalObjects;
+                ViewBag.TotalApplications = totalApplications;
+                ViewBag.PendingApplications = pendingApplications;
+                ViewBag.TotalCitizens = totalCitizens;
+            }
+
             return View();
         }
 
@@ -322,7 +377,7 @@ namespace Cadastral_Management.Controllers
                         _context.Employees.Add(new Employee
                         {
                             EmployeeId = userId,
-                            Department = "Не назначен"
+                            Department = "Отдел: - "
                         });
                     }
                 }

@@ -16,15 +16,15 @@
                 <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                     @if (Context.Session.GetString("UserType") == "Citizen")
                     {
-                        @* Для пользователя гражданина *@
+                        @* Для пользователя гражданин *@
+                        <a class="btn btn-outline-secondary btn-lg px-4" asp-controller="CadastralObject" asp-action="MyCadastralObjects">
+                            Мои кадастровые объекты
+                        </a>
                         <a class="btn btn-primary btn-lg px-4 me-md-2" asp-controller="Application" asp-action="Create">
                             Подать заявление
                         </a>
-                        <a class="btn btn-outline-secondary btn-lg px-4" asp-controller="Extract" asp-action="Request">
-                            Запросить выписку
-                        </a>
-                        <a class="btn btn-outline-secondaty btn-lg px-4" asp-controller="Application" asp-action="MyApplications" id="requestExtractLink">
-                             Посмотреть мои заявления
+                        <a class="btn btn-outline-secondaty btn-lg px-4" asp-controller="Extract" asp-action="MyExtracts">
+                             Мои выписки
                         </a>
                     }
                     else if (Context.Session.GetString("UserId") != null)
