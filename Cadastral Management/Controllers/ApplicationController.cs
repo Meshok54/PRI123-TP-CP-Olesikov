@@ -24,6 +24,29 @@ namespace Cadastral_Management.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Проверяем, есть ли данные для предзаполнения (из MyCadastralObjects)
+            var updateObjectId = HttpContext.Session.GetString("UpdateObjectId");
+            if (!string.IsNullOrEmpty(updateObjectId))
+            {
+                // Устанавливаем ViewBag для предзаполнения формы
+                ViewBag.UpdateMode = true;
+                ViewBag.UpdateCadastralNumber = HttpContext.Session.GetString("UpdateCadastralNumber");
+                ViewBag.UpdateAddress = HttpContext.Session.GetString("UpdateAddress");
+                ViewBag.UpdateArea = HttpContext.Session.GetString("UpdateArea");
+                ViewBag.UpdateObjectType = HttpContext.Session.GetString("UpdateObjectType");
+
+                // Очищаем сессию после использования
+                HttpContext.Session.Remove("UpdateObjectId");
+                HttpContext.Session.Remove("UpdateCadastralNumber");
+                HttpContext.Session.Remove("UpdateAddress");
+                HttpContext.Session.Remove("UpdateArea");
+                HttpContext.Session.Remove("UpdateObjectType");
+            }
+            else
+            {
+                ViewBag.UpdateMode = false;
+            }
+
             return View();
         }
 

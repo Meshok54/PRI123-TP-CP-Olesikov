@@ -131,6 +131,26 @@
             const filePreview = document.getElementById('filePreview');
             const areaInput = document.getElementById('area');
 
+            // КОД АВТОЗАПОЛНЕНИЯ
+            @if (ViewBag.UpdateMode == true)
+            {
+                <text>
+                // Устанавливаем тип заявления "Обновление"
+                applicationType.value = 'Обновление';
+                
+                // Заполняем поля данными из объекта
+                cadastralNumber.value = '@Html.Raw(ViewBag.UpdateCadastralNumber)';
+                document.getElementById('address').value = '@Html.Raw(ViewBag.UpdateAddress)';
+                document.getElementById('area').value = '@Html.Raw(ViewBag.UpdateArea)';
+                document.getElementById('objectType').value = '@Html.Raw(ViewBag.UpdateObjectType)';
+                
+                // Добавляем сообщение
+                setTimeout(function() {
+                    alert('Форма предзаполнена для обновления объекта. Проверьте данные и при необходимости внесите изменения.');
+                }, 500);
+                </text>
+            }
+
             // Функция для обновления видимости поля кадастрового номера
             function updateCadastralNumberVisibility() {
                 if (applicationType.value === 'Обновление') {
