@@ -10,7 +10,6 @@
             "Принят к проверке" => "bg-secondary",
             "На проверке" => "bg-warning text-dark",
             "Одобрен" => "bg-success",
-            "Учтено" => "bg-info",
             "Отклонен" => "bg-danger",
             _ => "bg-secondary"
         };
@@ -23,9 +22,20 @@
             "Принят к проверке" => "fa-clock",
             "На проверке" => "fa-search",
             "Одобрен" => "fa-check-circle",
-            "Учтено" => "fa-file-check",
             "Отклонен" => "fa-times-circle",
             _ => "fa-question-circle"
+        };
+    }
+    
+    // Функция для получения класса типа объекта
+    string GetObjectTypeBadgeClass(string objectType)
+    {
+        return objectType switch
+        {
+            "Земельный участок" => "bg-success",
+            "Здание" => "bg-primary",
+            "Помещение" => "bg-info",
+            _ => "bg-secondary"
         };
     }
 }
@@ -65,8 +75,7 @@
                         </div>
                         <div class="col-md-3 mb-2 mb-md-0">
                             <div class="fw-bold text-success">
-                                @Model.Count(a => a.ApplicationStatus == "Одобрен" || 
-                                                   a.ApplicationStatus == "Учтено")
+                                @Model.Count(a => a.ApplicationStatus == "Одобрен")
                             </div>
                             <small class="text-muted">Успешно завершено</small>
                         </div>
@@ -96,12 +105,13 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th width="80">Id</th>
+                                        <th width="80">ID</th>
                                         <th>Дата подачи</th>
                                         <th>Тип заявления</th>
+                                        <th>Адрес объекта</th>
+                                        <th>Площадь</th>
+                                        <th>Тип объекта</th>
                                         <th>Статус</th>
-                                        <th>Объект</th>
-                                        <th>Дата обновления</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -109,7 +119,7 @@
                                     {
                                         <tr>
                                             <td>
-                                                <strong>@app.ApplicationId</strong>
+                                                <strong>#@app.ApplicationId</strong>
                                             </td>
                                             <td>
                                                 @app.ApplicationDate.ToString("dd.MM.yyyy")
@@ -120,6 +130,33 @@
                                                 <span class="badge 
                                                     @(app.ApplicationType == "Регистрация" ? "bg-info" : "bg-warning")">
                                                     @app.ApplicationType
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                     title="Адрес: @app.Address">
+                                                    <small class="fw-bold">
+                                                        @(app.Address.Length > 30 ? app.Address.Substring(0, 30) + "..." : app.Address)
+                                                    </small>
+                                                </div>
+                                                
+                                                <!-- Если есть связанный объект, показываем кадастровый номер -->
+                                                @if (app.CadastralObjectId.HasValue && app.CadastralObject != null)
+                                                {
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-hashtag me-1"></i>
+                                                        @app.CadastralObject.CadastralNumber
+                                                    </small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">
+                                                    @app.Area.ToString("N2") м²
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetObjectTypeBadgeClass(app.CadastralObjectType)">
+                                                    @app.CadastralObjectType
                                                 </span>
                                             </td>
                                             <td>
@@ -135,39 +172,6 @@
                                                         @(app.DecisionComment.Length > 30 ? app.DecisionComment.Substring(0, 30) + "..." : app.DecisionComment)
                                                     </small>
                                                 }
-                                            </td>
-                                            <td>
-                                                @if (app.CadastralObjectId.HasValue && app.CadastralObject != null)
-                                                {
-                                                    if (app.ApplicationType == "Обновление")
-                                                    {
-                                                        // Для обновления показываем кадастровый номер
-                                                        <small>
-                                                            <strong>@app.CadastralObject.CadastralNumber</strong>
-                                                            <br>
-                                                            <span class="text-muted">Обновление объекта</span>
-                                                        </small>
-                                                    }
-                                                    else
-                                                    {
-                                                        // Для регистрации или если нет кадастрового номера
-                                                        <small>Объект: #@app.CadastralObjectId</small>
-                                                    }
-                                                }
-                                                else if (!string.IsNullOrEmpty(app.CitizenComment))
-                                                {
-                                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" 
-                                                           title="@app.CitizenComment">
-                                                        @(app.CitizenComment.Length > 30 ? app.CitizenComment.Substring(0, 30) + "..." : app.CitizenComment)
-                                                    </small>
-                                                }
-                                                else
-                                                {
-                                                    <small class="text-muted">Нет информации</small>
-                                                }
-                                            </td>
-                                            <td>
-                                                @app.CreatedAt.ToString("dd.MM.yyyy HH:mm")
                                             </td>
                                         </tr>
                                     }
@@ -225,7 +229,6 @@
                                 <option value="Принят к проверке">Принят к проверке</option>
                                 <option value="На проверке">На проверке</option>
                                 <option value="Одобрен">Одобрен</option>
-                                <option value="Учтено">Учтено</option>
                                 <option value="Отклонен">Отклонен</option>
                             </select>
                         </div>
@@ -238,7 +241,7 @@
                         </div>
                         <div class="col-md-4 mb-2">
                             <input type="text" class="form-control form-control-sm" 
-                                   id="searchInput" placeholder="Поиск по кадастровому номеру...">
+                                   id="searchInput" placeholder="Поиск по адресу...">
                         </div>
                         <div class="col-md-2 mb-2">
                             <button class="btn btn-sm btn-outline-secondary w-100" id="resetFilters">
@@ -268,13 +271,13 @@
                 const searchValue = searchInput.value.toLowerCase();
                 
                 tableRows.forEach(row => {
-                    const statusCell = row.querySelector('td:nth-child(4)');
+                    const statusCell = row.querySelector('td:nth-child(7)');
                     const typeCell = row.querySelector('td:nth-child(3)');
-                    const objectCell = row.querySelector('td:nth-child(5)');
+                    const addressCell = row.querySelector('td:nth-child(4)');
                     
                     const statusText = statusCell.textContent.toLowerCase();
                     const typeText = typeCell.textContent.toLowerCase();
-                    const objectText = objectCell.textContent.toLowerCase();
+                    const addressText = addressCell.textContent.toLowerCase();
                     
                     let showRow = true;
                     
@@ -288,8 +291,8 @@
                         showRow = false;
                     }
                     
-                    // Поиск по кадастровому номеру
-                    if (searchValue && !objectText.includes(searchValue)) {
+                    // Поиск по адресу
+                    if (searchValue && !addressText.includes(searchValue)) {
                         showRow = false;
                     }
                     
@@ -308,34 +311,14 @@
                 tableRows.forEach(row => row.style.display = '');
             });
             
-            // Изначальная фильтрация (если есть параметры в URL)
-            const urlParams = new URLSearchParams(window.location.search);
-            const statusParam = urlParams.get('status');
-            const typeParam = urlParams.get('type');
-            
-            if (statusParam) {
-                statusFilter.value = statusParam;
-            }
-            if (typeParam) {
-                typeFilter.value = typeParam;
-            }
+            // Инициализация tooltip
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
             
             filterTable();
         });
-        
-        // Автообновление статусов каждые 30 секунд
-        function autoRefreshStatus() {
-            setTimeout(function() {
-                window.location.reload();
-            }, 30000); // 30 секунд
-        }
-        
-        // Запускаем автообновление только если есть заявления в обработке
-        const inProgressCount = @Model.Count(a => a.ApplicationStatus == "Принят к проверке" || a.ApplicationStatus == "На проверке");
-        if (inProgressCount > 0) {
-            autoRefreshStatus();
-            console.log('Автообновление включено (30 сек) - заявления в обработке: ' + inProgressCount);
-        }
     </script>
     
     <style>

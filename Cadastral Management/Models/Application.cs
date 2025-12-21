@@ -23,6 +23,20 @@ namespace Cadastral_Management.Models
         [Column("application_type")]
         public string ApplicationType { get; set; }
 
+        [Required]
+        [StringLength(500)]
+        [Column("address")]
+        public string Address { get; set; }
+
+        [Required]
+        [Column("area")]
+        public decimal Area { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        [Column("cadastralObject_type")]
+        public string CadastralObjectType { get; set; }
+
         [Column("citizen_comment")]
         public string? CitizenComment { get; set; }
 
@@ -37,10 +51,6 @@ namespace Cadastral_Management.Models
 
         [Column("cadastral_object_id")]
         public int? CadastralObjectId { get; set; }
-
-        [Column("created_at")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-
 
         public Citizen Applicant { get; set; }
         public Employee? AssignedEmployee { get; set; }

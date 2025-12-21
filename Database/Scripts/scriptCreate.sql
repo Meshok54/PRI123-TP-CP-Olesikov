@@ -48,15 +48,17 @@ CREATE TABLE CadastralObjects (
 -- Таблица: Заявления
 CREATE TABLE Applications (
     application_id INT AUTO_INCREMENT PRIMARY KEY,
-    application_date DATETIME NOT NULL,
-    application_status ENUM('Принят к проверке', 'На проверке', 'Одобрен', 'Отклонен', 'Учтено') NOT NULL DEFAULT 'Принят к проверке',
+    application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    application_status ENUM('Принят к проверке', 'На проверке', 'Одобрен', 'Отклонен') NOT NULL DEFAULT 'Принят к проверке',
     application_type ENUM('Регистрация', 'Обновление') NOT NULL,
+    address VARCHAR(500) NOT NULL,
+    area DECIMAL(10, 2) NOT NULL,
+    cadastralObject_type ENUM('Земельный участок', 'Здание', 'Помещение') NOT NULL,
     citizen_comment TEXT,
     decision_comment TEXT,
     applicant_id INT NOT NULL,
     assigned_employee_id INT,
     cadastral_object_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (applicant_id) REFERENCES Citizens(citizen_id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_employee_id) REFERENCES Employees(employee_id) ON DELETE SET NULL,
     FOREIGN KEY (cadastral_object_id) REFERENCES CadastralObjects(cadastral_object_id) ON DELETE SET NULL
@@ -82,7 +84,7 @@ CREATE TABLE ApplicationHistory (
     old_status VARCHAR(50),
     new_status VARCHAR(50) NOT NULL,
     change_date DATETIME NOT NULL,
-    changed_by_employee_id INT NOT NULL,
+    changed_by_employee_id INT,
     history_comment TEXT,
     FOREIGN KEY (application_id) REFERENCES Applications(application_id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by_employee_id) REFERENCES Employees(employee_id) ON DELETE CASCADE

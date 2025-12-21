@@ -1,0 +1,353 @@
+﻿@model Cadastral_Management.Models.Application
+@{
+    ViewData["Title"] = $"Проверка заявления #{Model.ApplicationId}";
+    
+    string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Принят к проверке" => "bg-secondary",
+            "На проверке" => "bg-warning text-dark",
+            "Одобрен" => "bg-success",
+            "Отклонен" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+    
+    // Функция для получения класса типа объекта
+    string GetObjectTypeBadgeClass(string objectType)
+    {
+        return objectType switch
+        {
+            "Земельный участок" => "bg-success",
+            "Здание" => "bg-primary",
+            "Помещение" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+<div class="container mt-4">
+    <!-- Навигация -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="ViewAll">Все заявления</a></li>
+                    <li class="breadcrumb-item active">Заявление #@Model.ApplicationId</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка - информация о заявлении -->
+        <div class="col-md-8">
+            <!-- Основная информация -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Заявление #@Model.ApplicationId</h5>
+                    <span class="badge bg-light text-dark">@Model.ApplicationType</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>Дата подачи:</strong></td>
+                                    <td>@Model.ApplicationDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Статус:</strong></td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(Model.ApplicationStatus)">
+                                            @Model.ApplicationStatus
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Тип заявления:</strong></td>
+                                    <td>@Model.ApplicationType</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>Заявитель:</strong></td>
+                                    <td>
+                                        @if (Model.Applicant?.User != null)
+                                        {
+                                            @Model.Applicant.User.FullName<br>
+                                            <small class="text-muted">ID: @Model.ApplicantId</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">ID: @Model.ApplicantId</span>
+                                        }
+                                    </td>
+                                </tr>
+                                @if (Model.AssignedEmployee?.User != null)
+                                {
+                                    <tr>
+                                        <td><strong>Ответственный:</strong></td>
+                                        <td>@Model.AssignedEmployee.User.FullName</td>
+                                    </tr>
+                                }
+                                @if (Model.CadastralObjectId.HasValue && Model.CadastralObject != null)
+                                {
+                                    <tr>
+                                        <td><strong>Кадастровый номер:</strong></td>
+                                        <td>
+                                            <strong>@Model.CadastralObject.CadastralNumber</strong>
+                                        </td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Комментарий заявителя -->
+                    @if (!string.IsNullOrEmpty(Model.CitizenComment))
+                    {
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Комментарий заявителя:</strong></label>
+                            <div class="border rounded p-3 bg-light">
+                                @Model.CitizenComment
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Данные объекта -->
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2"><i class="fas fa-building me-2"></i>Данные объекта</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><small class="text-muted">Адрес объекта:</small></label>
+                                    <div class="fw-bold">@Model.Address</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><small class="text-muted">Площадь:</small></label>
+                                    <div class="fw-bold">@Model.Area.ToString("N2") кв.м</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><small class="text-muted">Тип объекта:</small></label>
+                                    <div>
+                                        <span class="badge @GetObjectTypeBadgeClass(Model.CadastralObjectType)">
+                                            @Model.CadastralObjectType
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                @if (Model.ApplicationType == "Регистрация")
+                                {
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Новый объект</strong><br>
+                                        При одобрении будет создан новый кадастровый объект с присвоением кадастрового номера
+                                    </div>
+                                }
+                                else if (Model.ApplicationType == "Обновление" && Model.CadastralObject != null)
+                                {
+                                    <div class="alert alert-warning mt-3">
+                                        <i class="fas fa-sync-alt me-2"></i>
+                                        <strong>Обновление объекта</strong><br>
+                                        Кадастровый номер: <strong>@Model.CadastralObject.CadastralNumber</strong><br>
+                                        Текущий владелец: @(Model.CadastralObject.Owner?.User?.FullName ?? "Не указан")
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- История изменений -->
+                    @if (Model.ApplicationHistories != null && Model.ApplicationHistories.Any())
+                    {
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="fas fa-history me-2"></i>История изменений</h6>
+                            <div class="timeline">
+                                @foreach (var history in Model.ApplicationHistories.OrderBy(h => h.ChangeDate))
+                                {
+                                    <div class="timeline-item mb-3">
+                                        <div class="d-flex">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content flex-grow-1">
+                                                <div class="d-flex justify-content-between">
+                                                    <strong>@history.NewStatus</strong>
+                                                    <small class="text-muted">@history.ChangeDate.ToString("dd.MM.yyyy HH:mm")</small>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(history.HistoryComment))
+                                                {
+                                                    <p class="mb-1 small">@history.HistoryComment</p>
+                                                }
+                                                @if (history.ChangedByEmployee?.User != null)
+                                                {
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-user me-1"></i>
+                                                        @history.ChangedByEmployee.User.FullName
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted"><i class="fas fa-robot me-1"></i>Система</small>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка - действия и документы -->
+        <div class="col-md-4">
+            <!-- Документы -->
+            @if (Model.Attachments != null && Model.Attachments.Any())
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Прикрепленные документы</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            @foreach (var attachment in Model.Attachments)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-file me-2"></i>
+                                            <a href="@attachment.FilePath" target="_blank" class="text-decoration-none">
+                                                @attachment.FileName
+                                            </a>
+                                        </div>
+                                        <small class="text-muted">@attachment.UploadDate.ToString("dd.MM.yyyy")</small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Действия -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Действия</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ApplicationStatus == "Принят к проверке" || Model.ApplicationStatus == "На проверке")
+                    {
+                        <!-- Форма одобрения -->
+                        <form method="post" asp-action="Approve" asp-route-id="@Model.ApplicationId" class="mb-4">
+                            <div class="mb-3">
+                                <label for="decisionComment" class="form-label">Комментарий решения</label>
+                                <textarea class="form-control" id="decisionComment" name="decisionComment" 
+                                          rows="3" placeholder="Введите комментарий решения..." required></textarea>
+                                <small class="form-text text-muted">Обязательно для заполнения</small>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-1"></i> Одобрить заявление
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Форма отклонения -->
+                        <form method="post" asp-action="Reject" asp-route-id="@Model.ApplicationId">
+                            <div class="mb-3">
+                                <label for="rejectComment" class="form-label">Причина отклонения</label>
+                                <textarea class="form-control" id="rejectComment" name="decisionComment" 
+                                          rows="2" placeholder="Укажите причину отклонения..." required></textarea>
+                                <small class="form-text text-muted">Обязательно для заполнения</small>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-times me-1"></i> Отклонить заявление
+                                </button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert @(Model.ApplicationStatus == "Одобрен" ? "alert-success" : "alert-danger")">
+                            <i class="fas @(Model.ApplicationStatus == "Одобрен" ? "fa-check-circle" : "fa-times-circle") me-2"></i>
+                            <strong>Заявление уже обработано.</strong><br>
+                            Статус: <strong>@Model.ApplicationStatus</strong>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(Model.DecisionComment))
+                        {
+                            <div class="alert alert-light border mt-3">
+                                <h6><strong>Комментарий решения:</strong></h6>
+                                <p class="mb-0">@Model.DecisionComment</p>
+                            </div>
+                        }
+                        
+                        <!-- Если объект создан при регистрации -->
+                        @if (Model.ApplicationType == "Регистрация" && Model.ApplicationStatus == "Одобрен" && Model.CadastralObject != null)
+                        {
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-hashtag me-2"></i>
+                                <strong>Создан кадастровый объект</strong><br>
+                                Номер: <strong>@Model.CadastralObject.CadastralNumber</strong><br>
+                                Дата регистрации: @Model.CadastralObject.RegistrationDate.ToString("dd.MM.yyyy")
+                            </div>
+                        }
+                    }
+
+                    <div class="d-grid mt-4">
+                        <a asp-action="ViewAll" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-1"></i> Назад к списку
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline-item {
+        position: relative;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -2rem;
+        top: 0.5rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #0d6efd;
+        border: 2px solid white;
+        box-shadow: 0 0 0 3px #0d6efd;
+    }
+    
+    .timeline-content {
+        border-left: 2px solid #dee2e6;
+        padding-left: 1rem;
+        margin-left: -1rem;
+    }
+    
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.8em;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+</style>
