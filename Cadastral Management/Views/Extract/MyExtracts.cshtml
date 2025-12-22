@@ -1,18 +1,375 @@
-﻿@{
+﻿@model List<Extract>
+@{
     ViewData["Title"] = "Мои выписки";
+    
+    // Получаем данные фильтров из ViewBag
+    string searchQuery = ViewBag.FilterSearchQuery;
+    DateTime? startDate = ViewBag.FilterStartDate;
+    DateTime? endDate = ViewBag.FilterEndDate;
+    int? selectedObjectId = ViewBag.FilterSelectedObjectId;
+    var userObjects = ViewBag.UserObjects as List<CadastralObject> ?? new List<CadastralObject>();
+    int totalCount = ViewBag.TotalCount ?? 0;
+    string userEmail = ViewBag.UserEmail;
+    
+    // Функция для форматирования даты
+    string FormatDate(DateTime date)
+    {
+        return date.ToString("dd.MM.yyyy HH:mm");
+    }
+    
+    // Функция для получения класса типа объекта
+    string GetObjectTypeBadgeClass(string objectType)
+    {
+        return objectType switch
+        {
+            "Земельный участок" => "bg-success",
+            "Здание" => "bg-primary",
+            "Помещение" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
 }
 
-<div class="container">
-    <h1>Мои выписки</h1>
-    <p>Здесь будет таблица с моими выписками
-        В ней инфа:
-        1) Айди выписки
-        2) Дата формирования
-        3) Данные об объекте выписки (Кадастровый номер, адрес)
-        4) Ссылка на скачивание файла выписки - при нажатии начинается скачка файла выписки
-        (файл выписки: Все данные про кадастровый объект + 
-        Данные про владельца + 
-        Какие нибудь данные аля государственные - типо налога и прочее)
-        Здесь же кнопка отсылки файла выписки на email  указанный у пользователя (из таблицы Users email)
-    </p>
+<div class="container mt-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="fw-bold text-primary">
+                    <i class="fas fa-file-pdf me-2"></i>Мои выписки
+                </h1>
+                <span class="badge bg-primary fs-6">
+                    Всего: @totalCount
+                </span>
+            </div>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Сообщения об успехе/ошибке -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="this.parentElement.style.display='none';"></button>
+        </div>
+    }
+    
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="this.parentElement.style.display='none';"></button>
+        </div>
+    }
+
+    <!-- Фильтры -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Фильтры</h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" asp-action="MyExtracts" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Поиск</label>
+                            <input type="text" class="form-control" name="searchQuery" 
+                                   value="@searchQuery" 
+                                   placeholder="Номер или адрес...">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">С даты</label>
+                            <input type="date" class="form-control" name="startDate" 
+                                   value="@(startDate?.ToString("yyyy-MM-dd"))">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">По дату</label>
+                            <input type="date" class="form-control" name="endDate" 
+                                   value="@(endDate?.ToString("yyyy-MM-dd"))">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Объект</label>
+                            <select class="form-select" name="selectedObjectId">
+                                <option value="0">Все объекты</option>
+                                @foreach (var obj in userObjects)
+                                {
+                                    var isSelected = selectedObjectId == obj.CadastralObjectId;
+                                    <option value="@obj.CadastralObjectId" selected="@isSelected">
+                                        @obj.CadastralNumber - @(obj.Address.Length > 30 ? obj.Address.Substring(0, 30) + "..." : obj.Address)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Поиск
+                                </button>
+                                <a asp-action="MyExtracts" class="btn btn-outline-secondary">
+                                    <i class="fas fa-redo me-1"></i> Сбросить
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <!-- Таблица выписок -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Список выписок</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="50">№</th>
+                                        <th>Дата формирования</th>
+                                        <th>Кадастровый номер</th>
+                                        <th>Адрес объекта</th>
+                                        <th>Тип объекта</th>
+                                        <th>Отправлено на email</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var extract in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@extract.ExtractId</strong>
+                                            </td>
+                                            <td>
+                                                <small>@FormatDate(extract.GenerationDate)</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-dark">@extract.CadastralObject?.CadastralNumber</span>
+                                            </td>
+                                            <td>
+                                                @if (extract.CadastralObject != null)
+                                                {
+                                                    <div title="@extract.CadastralObject.Address">
+                                                        <small class="fw-bold">
+                                                            @(extract.CadastralObject.Address.Length > 40 ? 
+                                                              extract.CadastralObject.Address.Substring(0, 40) + "..." : 
+                                                              extract.CadastralObject.Address)
+                                                        </small>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (extract.CadastralObject != null)
+                                                {
+                                                    <span class="badge @GetObjectTypeBadgeClass(extract.CadastralObject.CadastralObjectType)">
+                                                        @extract.CadastralObject.CadastralObjectType
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (extract.IsSentViaEmail)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i> Отправлено
+                                                    </span>
+                                                    <br>
+                                                    <small class="text-muted">@extract.RequestedBy?.User?.Email</small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-times me-1"></i> Не отправлено
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <!-- Кнопка скачивания -->
+                                                    @if (!string.IsNullOrEmpty(extract.DownloadLinkHash))
+                                                    {
+                                                        <a href="@Url.Action("Download", "Extract", new { hash = extract.DownloadLinkHash })" 
+                                                           class="btn btn-outline-primary" 
+                                                           title="Скачать выписку" download>
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    }
+                                                    
+                                                    <!-- Кнопка отправки на email -->
+                                                    <a href="@Url.Action("SendEmail", "Extract", new { id = extract.ExtractId })" 
+                                                       class="btn btn-outline-success"
+                                                       title="Отправить на email @extract.RequestedBy?.User?.Email"
+                                                       onclick="return confirm('Отправить выписку на email @extract.RequestedBy?.User?.Email?');">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-light">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Показано @Model.Count из @totalCount выписок
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small class="text-muted">
+                                    Последнее обновление: @DateTime.Now.ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о выписках -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация о выписках</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-download"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Скачивание выписки</h6>
+                                        <p class="mb-0 text-muted small">
+                                            Выписка сохраняется в формате PDF. Файл содержит актуальные данные на момент формирования.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Отправка на email</h6>
+                                        <p class="mb-0 text-muted small">
+                                            Выписка будет отправлена на email, указанный при регистрации: 
+                                            <strong>@(userEmail ?? "не указан")</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-history"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Хранение выписок</h6>
+                                        <p class="mb-0 text-muted small">
+                                            Все сформированные выписки хранятся в системе. Вы можете скачать их в любое время.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Сообщение, если выписок нет -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">У вас пока нет сформированных выписок</h5>
+                        <p class="text-muted mb-4">
+                            Выписки формируются при запросе на странице "Мои объекты".
+                        </p>
+                        <a asp-controller="CadastralObject" asp-action="MyObjects" 
+                           class="btn btn-primary btn-lg">
+                            <i class="fas fa-building me-1"></i> Перейти к моим объектам
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+
+<!-- Простой JavaScript без jQuery -->
+<script>
+    // Автоматическое скрытие alert через 5 секунд
+    setTimeout(function() {
+        var alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            alert.style.display = 'none';
+        });
+    }, 5000);
+</script>
+
+<style>
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.8em;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .card {
+        border-radius: 10px;
+    }
+    
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    
+    tr:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+    }
+    
+    .btn-group .btn {
+        border-radius: 4px !important;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 2px;
+    }
+    
+    .btn-group {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>

@@ -509,7 +509,7 @@ namespace Cadastral_Management.Controllers
         private int GetCurrentEmployeeId()
         {
             var userId = HttpContext.Session.GetString("UserId");
-            return int.TryParse(userId, out var id) ? id : 1; // Заглушка
+            return int.TryParse(userId, out var id) ? id : 1;
         }
 
 
