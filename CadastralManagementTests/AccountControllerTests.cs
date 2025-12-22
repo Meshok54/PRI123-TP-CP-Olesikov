@@ -5,9 +5,7 @@ using Cadastral_Management.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
-namespace CadastralManagement.Tests
+namespace CadastralManagementTests
 {
     [TestFixture]
     public class AccountControllerTests

@@ -7,36 +7,38 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
+using Cadastral_Management.Services;
 
 namespace Cadastral_Management.Controllers
 {
     public class CadastralObjectController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISessionService _sessionService;
 
-        public CadastralObjectController(ApplicationDbContext context)
+        public CadastralObjectController(
+            ApplicationDbContext context,
+            ISessionService sessionService)
         {
             _context = context;
+            _sessionService = sessionService;
         }
 
         // GET: /CadastralObject/MyCadastralObjects
         public async Task<IActionResult> MyCadastralObjects()
         {
-            var userId = HttpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userId))
+            if (!_sessionService.IsAuthenticated() || !_sessionService.IsCitizen())
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            var citizenId = int.Parse(userId);
+            var citizenId = int.Parse(_sessionService.GetUserId());
 
-            // Получаем все кадастровые объекты пользователя
             var cadastralObjects = await _context.CadastralObjects
                 .Where(co => co.OwnerId == citizenId)
                 .OrderByDescending(co => co.RegistrationDate)
                 .ToListAsync();
 
-            // Получаем последние выписки для каждого объекта
             var extracts = await _context.Extracts
                 .Where(e => e.RequestedById == citizenId)
                 .OrderByDescending(e => e.GenerationDate)
@@ -227,8 +229,10 @@ namespace Cadastral_Management.Controllers
         // GET: /CadastralObject/Create
         public IActionResult Create()
         {
-            if (!IsAuthorized())
+            if (!_sessionService.IsEmployee() && !_sessionService.IsAdmin())
+            {
                 return RedirectToAction("AccessDenied", "Home");
+            }
 
             return View();
         }
@@ -243,8 +247,10 @@ namespace Cadastral_Management.Controllers
             int ownerId,
             DateTime registrationDate)
         {
-            if (!IsAuthorized())
+            if (!_sessionService.IsEmployee() && !_sessionService.IsAdmin())
+            {
                 return RedirectToAction("AccessDenied", "Home");
+            }
 
             try
             {
@@ -311,7 +317,7 @@ namespace Cadastral_Management.Controllers
                 _context.CadastralObjectHistories.Add(history);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Объект {cadastralNumber} успешно создан!";
+                //TempData["SuccessMessage"] = $"Объект {cadastralNumber} успешно создан!";
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
@@ -325,8 +331,10 @@ namespace Cadastral_Management.Controllers
         // GET: /CadastralObject/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            if (!IsAuthorized())
+            if (!_sessionService.IsEmployee() && !_sessionService.IsAdmin())
+            {
                 return RedirectToAction("AccessDenied", "Home");
+            }
 
             var cadastralObject = await _context.CadastralObjects
                 .Include(co => co.Owner)
@@ -463,8 +471,10 @@ namespace Cadastral_Management.Controllers
         // GET: /CadastralObject/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            if (!IsAuthorized())
+            if (!_sessionService.IsEmployee() && !_sessionService.IsAdmin())
+            {
                 return RedirectToAction("AccessDenied", "Home");
+            }
 
             try
             {
@@ -489,12 +499,10 @@ namespace Cadastral_Management.Controllers
                 _context.CadastralObjects.Remove(cadastralObject);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Объект {cadastralObject.CadastralNumber} успешно удален!";
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Ошибка при удалении: {ex.Message}";
                 return RedirectToAction("Index", "Home");
             }
         }
@@ -508,7 +516,7 @@ namespace Cadastral_Management.Controllers
 
         private int GetCurrentEmployeeId()
         {
-            var userId = HttpContext.Session.GetString("UserId");
+            var userId = _sessionService.GetUserId();
             return int.TryParse(userId, out var id) ? id : 1;
         }
 
