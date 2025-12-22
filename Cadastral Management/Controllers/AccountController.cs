@@ -2,16 +2,24 @@
 using Microsoft.EntityFrameworkCore;
 using Cadastral_Management.Data;
 using Cadastral_Management.Models;
+using Cadastral_Management.Services;
 using BCrypt.Net;
 
 namespace Cadastral_Management.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IUserService _userService;
+        private readonly ISessionService _sessionService;
+        private readonly ApplicationDbContext? _context;
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(
+            IUserService userService,
+            ISessionService sessionService,
+            ApplicationDbContext? context = null)
         {
+            _userService = userService;
+            _sessionService = sessionService;
             _context = context;
         }
 
@@ -21,40 +29,29 @@ namespace Cadastral_Management.Controllers
             return View();
         }
 
-        // POST: /Account/Login - обрабатывает форму входа
+        // POST: /Account/Login - Вход пользователя
         [HttpPost]
         public async Task<IActionResult> Login(string login, string password)
         {
             try
             {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Login == login);
+                var user = await _userService.AuthenticateAsync(login, password);
 
                 if (user == null)
                 {
-                    Console.WriteLine("логин не верный");
-                    ViewBag.Error = "Пользователь с таким логином не найден";
+                    ViewBag.Error = "Неверный логин или пароль";
                     return View();
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                {
-                    ViewBag.Error = "Неверный пароль";
-                    return View();
-                }
-
-                HttpContext.Session.SetString("UserId", user.UserId.ToString());
-                HttpContext.Session.SetString("UserName", user.FullName);
-                HttpContext.Session.SetString("UserType", user.UserType);
+                _sessionService.SetUserId(user.UserId);
+                _sessionService.SetUserName(user.FullName);
+                _sessionService.SetUserType(user.UserType);
 
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"=== ОШИБКА ВХОДА ===");
-                Console.WriteLine($"Ошибка: {ex.Message}");
-                Console.WriteLine($"====================");
-
+                // Логирование ошибки
                 ViewBag.Error = "Произошла ошибка при входе. Попробуйте еще раз.";
                 return View();
             }
@@ -66,7 +63,7 @@ namespace Cadastral_Management.Controllers
             return View();
         }
 
-        // POST: /Account/Register - обрабатывает регистрацию
+        // POST: /Account/Register - Регистрация пользователя
         [HttpPost]
         public async Task<IActionResult> Register(
             string login,
@@ -80,28 +77,29 @@ namespace Cadastral_Management.Controllers
         {
             try
             {
-                if (await _context.Users.AnyAsync(u => u.Login == login))
+                // Валидация через сервисы
+                if (await _userService.UserExistsByLoginAsync(login))
                 {
                     ViewBag.Error = "Пользователь с таким логином уже существует";
                     return View();
                 }
 
-                if (await _context.Users.AnyAsync(u => u.Email == email))
+                if (await _userService.UserExistsByEmailAsync(email))
                 {
                     ViewBag.Error = "Пользователь с таким email уже существует";
                     return View();
                 }
 
-                if (await _context.Citizens.AnyAsync(c => c.PassportData == passportData))
+                if (await _userService.CitizenExistsByPassportAsync(passportData))
                 {
                     ViewBag.Error = "Пользователь с такими паспортными данными уже зарегистрирован";
                     return View();
                 }
 
+                // Создание пользователя
                 var user = new User
                 {
                     Login = login,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                     FullName = fullName,
                     Email = email,
                     PhoneNumber = phoneNumber,
@@ -109,46 +107,33 @@ namespace Cadastral_Management.Controllers
                     CreatedAt = DateTime.Now
                 };
 
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                await _userService.CreateUserAsync(user, password);
 
+                // Создание записи гражданина
                 var citizen = new Citizen
                 {
                     CitizenId = user.UserId,
                     PassportData = passportData
                 };
-
                 _context.Citizens.Add(citizen);
                 await _context.SaveChangesAsync();
 
-                // ЕСЛИ регистрирует админ - НЕ логинимся как новый пользователь
+                // Логика авторизации
                 if (adminContext && returnTo == "ViewAll")
                 {
                     TempData["SuccessMessage"] = $"Пользователь {user.FullName} успешно создан!";
                     return RedirectToAction("ViewAll", "Account");
                 }
-                // ИНАЧЕ - стандартное поведение (логинимся как новый пользователь)
                 else
                 {
-                    HttpContext.Session.SetString("UserId", user.UserId.ToString());
-                    HttpContext.Session.SetString("UserName", user.FullName);
-                    HttpContext.Session.SetString("UserType", user.UserType);
-
+                    _sessionService.SetUserId(user.UserId);
+                    _sessionService.SetUserName(user.FullName);
+                    _sessionService.SetUserType(user.UserType);
                     return RedirectToAction("Index", "Home");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"=== ОШИБКА РЕГИСТРАЦИИ ===");
-                Console.WriteLine($"Сообщение: {ex.Message}");
-                Console.WriteLine($"Тип исключения: {ex.GetType()}");
-                Console.WriteLine($"StackTrace: {ex.StackTrace}");
-
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"Внутренняя ошибка: {ex.InnerException.Message}");
-                }
-                Console.WriteLine($"========================");
                 ViewBag.Error = $"Произошла ошибка при регистрации";
                 return View();
             }
@@ -157,7 +142,7 @@ namespace Cadastral_Management.Controllers
         // GET: /Account/Logout - выход из системы
         public IActionResult Logout()
         {
-            HttpContext.Session.Clear();
+            _sessionService.ClearSession();
             return RedirectToAction("Index", "Home");
         }
 

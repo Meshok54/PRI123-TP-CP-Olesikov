@@ -1,7 +1,9 @@
-﻿using Cadastral_Management.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Globalization;
+﻿using System.Globalization;
+using Cadastral_Management.Data;
+using Cadastral_Management.Services;
+using Cadastral_Management.Services.Implementation;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +49,10 @@ builder.Services.AddControllersWithViews()
     .AddDataAnnotationsLocalization();  // Для локализации атрибутов валидации
 
 builder.Services.AddSession();
+
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
