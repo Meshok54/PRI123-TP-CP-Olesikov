@@ -2,6 +2,7 @@
 using Cadastral_Management.Data;
 using Cadastral_Management.Services;
 using Cadastral_Management.Services.Implementation;
+using Cadastral_ManagementServices;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,6 +53,8 @@ builder.Services.AddSession();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IApplicationService, ApplicationService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

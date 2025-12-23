@@ -22,6 +22,9 @@ namespace Cadastral_Management.Services
         string GetString(string key);
         int? GetInt32(string key);
 
+        // Remove методы
+        void Remove(string key);
+
         // Другие методы
         void ClearSession();
     }

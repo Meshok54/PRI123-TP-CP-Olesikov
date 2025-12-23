@@ -30,6 +30,8 @@ namespace Cadastral_Management.Services.Implementation
             return value ?? (int.TryParse(Session?.GetString(key), out int intValue) ? intValue : (int?)null);
         }
 
+        public void Remove(string key) => Session?.Remove(key);
+
         public void ClearSession() => Session?.Clear();
 
         public bool IsAuthenticated() => !string.IsNullOrEmpty(GetUserId());

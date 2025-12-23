@@ -2,6 +2,8 @@
 using System.Security.Claims;
 using Cadastral_Management.Data;
 using Cadastral_Management.Models;
+using Cadastral_Management.Services;
+using Cadastral_ManagementServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,37 +12,47 @@ namespace Cadastral_Management.Controllers
     public class ApplicationController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISessionService _sessionService;
+        private readonly IFileService _fileService;
+        private readonly IApplicationService _applicationService;
 
-        public ApplicationController(ApplicationDbContext context)
+        public ApplicationController(
+            ApplicationDbContext context,
+            ISessionService sessionService,
+            IFileService fileService,
+            IApplicationService applicationService)
         {
             _context = context;
+            _sessionService = sessionService;
+            _fileService = fileService;
+            _applicationService = applicationService;
         }
 
         // GET: /Application/Create - форма подачи заявления
         public IActionResult Create()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+            if (!_sessionService.IsAuthenticated())
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            // Проверяем, есть ли данные для предзаполнения (из MyCadastralObjects)
-            var updateObjectId = HttpContext.Session.GetString("UpdateObjectId");
+            // Проверяем, есть ли данные для предзаполнения
+            var updateObjectId = _sessionService.GetString("UpdateObjectId");
             if (!string.IsNullOrEmpty(updateObjectId))
             {
                 // Устанавливаем ViewBag для предзаполнения формы
                 ViewBag.UpdateMode = true;
-                ViewBag.UpdateCadastralNumber = HttpContext.Session.GetString("UpdateCadastralNumber");
-                ViewBag.UpdateAddress = HttpContext.Session.GetString("UpdateAddress");
-                ViewBag.UpdateArea = HttpContext.Session.GetString("UpdateArea");
-                ViewBag.UpdateObjectType = HttpContext.Session.GetString("UpdateObjectType");
+                ViewBag.UpdateCadastralNumber = _sessionService.GetString("UpdateCadastralNumber");
+                ViewBag.UpdateAddress = _sessionService.GetString("UpdateAddress");
+                ViewBag.UpdateArea = _sessionService.GetString("UpdateArea");
+                ViewBag.UpdateObjectType = _sessionService.GetString("UpdateObjectType");
 
                 // Очищаем сессию после использования
-                HttpContext.Session.Remove("UpdateObjectId");
-                HttpContext.Session.Remove("UpdateCadastralNumber");
-                HttpContext.Session.Remove("UpdateAddress");
-                HttpContext.Session.Remove("UpdateArea");
-                HttpContext.Session.Remove("UpdateObjectType");
+                _sessionService.Remove("UpdateObjectId");
+                _sessionService.Remove("UpdateCadastralNumber");
+                _sessionService.Remove("UpdateAddress");
+                _sessionService.Remove("UpdateArea");
+                _sessionService.Remove("UpdateObjectType");
             }
             else
             {
@@ -63,13 +75,12 @@ namespace Cadastral_Management.Controllers
         {
             try
             {
-                var userId = HttpContext.Session.GetString("UserId");
-                if (string.IsNullOrEmpty(userId))
+                if (!_sessionService.IsAuthenticated())
                 {
                     return RedirectToAction("Login", "Account");
                 }
 
-                var citizenId = int.Parse(userId);
+                var citizenId = int.Parse(_sessionService.GetUserId());
 
                 // Проверка типа заявления
                 if (applicationType == "Обновление" && string.IsNullOrEmpty(cadastralNumber))
@@ -78,25 +89,21 @@ namespace Cadastral_Management.Controllers
                     return View();
                 }
 
-                // Валидация файла (если загружен)
+                // Валидация файла
                 if (documentFile != null && documentFile.Length > 0)
                 {
+                    // Простая валидация (можно вынести в FileService позже)
                     var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
                     var extension = Path.GetExtension(documentFile.FileName).ToLowerInvariant();
 
                     if (!allowedExtensions.Contains(extension))
                     {
-                        ViewBag.Error = "Недопустимый формат файла. Разрешены: PDF, DOC, DOCX, JPG, JPEG, PNG";
-                        return View();
-                    }
-
-                    if (documentFile.Length > 10 * 1024 * 1024) // 10 MB
-                    {
-                        ViewBag.Error = "Размер файла не должен превышать 10 МБ";
+                        ViewBag.Error = "Недопустимый формат файла";
                         return View();
                     }
                 }
 
+                // Создаем заявление
                 var application = new Application
                 {
                     ApplicationDate = DateTime.Now,
@@ -109,7 +116,7 @@ namespace Cadastral_Management.Controllers
                     ApplicantId = citizenId
                 };
 
-                // Обработка для "Обновление" - находим существующий объект
+                // Обработка для "Обновление"
                 if (applicationType == "Обновление")
                 {
                     var existingObject = await _context.CadastralObjects
@@ -130,7 +137,6 @@ namespace Cadastral_Management.Controllers
 
                     application.CadastralObjectId = existingObject.CadastralObjectId;
                 }
-                // Для "Регистрации" поле CadastralObjectId остается null
 
                 // Сохраняем заявление
                 _context.Applications.Add(application);
@@ -148,32 +154,17 @@ namespace Cadastral_Management.Controllers
                 };
                 _context.ApplicationHistories.Add(history);
 
-                // Сохраняем документ (если есть)
+                // Сохраняем документ (если есть) - через FileService
                 if (documentFile != null && documentFile.Length > 0)
                 {
-                    var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "applications");
-
-                    // Создаем папку, если не существует
-                    if (!Directory.Exists(uploadsPath))
-                    {
-                        Directory.CreateDirectory(uploadsPath);
-                    }
-
-                    // Генерируем уникальное имя файла
-                    var fileName = $"{application.ApplicationId}_{Guid.NewGuid()}{Path.GetExtension(documentFile.FileName)}";
-                    var filePath = Path.Combine(uploadsPath, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await documentFile.CopyToAsync(stream);
-                    }
+                    var savedPath = await _fileService.SaveApplicationDocumentAsync(documentFile, application.ApplicationId);
 
                     // Создаем запись в Attachments
                     var attachment = new Attachment
                     {
                         ApplicationId = application.ApplicationId,
                         FileName = documentFile.FileName,
-                        FilePath = $"/uploads/applications/{fileName}",
+                        FilePath = savedPath,
                         UploadDate = DateTime.Now
                     };
                     _context.Attachments.Add(attachment);
@@ -201,13 +192,12 @@ namespace Cadastral_Management.Controllers
         // GET: /Application/MyApplications - список моих заявлений
         public async Task<IActionResult> MyApplications()
         {
-            var userId = HttpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userId))
+            if (!_sessionService.IsAuthenticated())
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            var citizenId = int.Parse(userId);
+            var citizenId = int.Parse(_sessionService.GetUserId());
 
             var applications = await _context.Applications
                 .Include(a => a.CadastralObject)
@@ -476,12 +466,10 @@ namespace Cadastral_Management.Controllers
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Заявление #{id} успешно одобрено!";
                 return RedirectToAction("ViewAll");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Ошибка при одобрении заявления: {ex.Message}";
                 return RedirectToAction("Verify", new { id });
             }
         }
@@ -522,12 +510,12 @@ namespace Cadastral_Management.Controllers
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Заявление #{id} отклонено.";
+                //TempData["SuccessMessage"] = $"Заявление #{id} отклонено.";
                 return RedirectToAction("ViewAll");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Ошибка при отклонении заявления: {ex.Message}";
+                //TempData["ErrorMessage"] = $"Ошибка при отклонении заявления: {ex.Message}";
                 return RedirectToAction("Verify", new { id });
             }
         }
@@ -535,13 +523,13 @@ namespace Cadastral_Management.Controllers
         // Вспомогательные методы
         private bool IsEmployeeOrAdmin()
         {
-            var userType = HttpContext.Session.GetString("UserType");
-            return userType == "Employee" || userType == "Admin";
+            // Используем уже готовые методы из ISessionService
+            return _sessionService.IsEmployee() || _sessionService.IsAdmin();
         }
 
         private int GetCurrentEmployeeId()
         {
-            var userId = HttpContext.Session.GetString("UserId");
+            var userId = _sessionService.GetUserId();
             return int.TryParse(userId, out var id) ? id : 0;
         }
 
